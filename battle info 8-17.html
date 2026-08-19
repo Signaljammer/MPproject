@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guild Dashboard</title>
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --panel-bg: #0a120a;
+            --accent-color: #00ff66;
+            --text-main: #00ff66;
+            --border-color: #00ff66;
+            --table-header: #003311;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1, h2, h3 {
+            color: var(--accent-color);
+            text-transform: uppercase;
+            text-shadow: 0 0 8px rgba(0, 255, 102, 0.4);
+        }
+
+        /* Password Overlay */
+        #authOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .auth-card {
+            background-color: var(--panel-bg);
+            border: 2px solid var(--border-color);
+            padding: 40px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(0, 255, 102, 0.3);
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .auth-card h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        .auth-card input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+            box-sizing: border-box;
+            outline: none;
+            box-shadow: inset 0 0 5px rgba(0, 255, 102, 0.2);
+        }
+
+        .auth-card button {
+            width: 100%;
+            padding: 12px;
+            font-size: 1.1em;
+        }
+
+        .error-msg {
+            color: #ff3333;
+            margin-top: 10px;
+            font-size: 0.9em;
+            display: none;
+        }
+
+        .controls {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            background-color: var(--panel-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            margin-bottom: 10px;
+            box-shadow: inset 0 0 5px rgba(0, 255, 102, 0.2);
+        }
+
+        button, .file-upload-label {
+            background-color: var(--panel-bg);
+            color: var(--accent-color);
+            border: 1px solid var(--border-color);
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 5px;
+            text-transform: uppercase;
+            transition: all 0.2s;
+            box-shadow: 0 0 5px rgba(0, 255, 102, 0.3);
+        }
+
+        button:hover, .file-upload-label:hover {
+            background-color: var(--accent-color);
+            color: var(--bg-color);
+            box-shadow: 0 0 12px rgba(0, 255, 102, 0.8);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+        
+        /* Tab Navigation Styles */
+        .tabs-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .tab-btn {
+            background-color: #050a05;
+            border-color: #006622;
+        }
+
+        .tab-btn.active {
+            background-color: var(--accent-color);
+            color: var(--bg-color);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 8px rgba(0, 255, 102, 0.6);
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 0 6px rgba(0, 255, 102, 0.15);
+        }
+
+        .card-title {
+            font-size: 0.85em;
+            text-transform: uppercase;
+            color: #88ffbb;
+            margin-bottom: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        .card-value {
+            font-size: 1.6em;
+            font-weight: bold;
+            color: var(--accent-color);
+            text-shadow: 0 0 6px rgba(0, 255, 102, 0.5);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: var(--panel-bg);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 40px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 0 10px rgba(0, 255, 102, 0.1);
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(0, 255, 102, 0.2);
+        }
+
+        th {
+            background-color: var(--table-header);
+            color: var(--accent-color);
+            text-transform: uppercase;
+            font-weight: bold;
+            border-bottom: 2px solid var(--border-color);
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s;
+        }
+
+        th:hover {
+            background-color: rgba(0, 255, 102, 0.2);
+        }
+
+        th::after {
+            content: " ↕";
+            font-size: 0.8em;
+            opacity: 0.5;
+        }
+
+        th.sort-asc::after {
+            content: " ▲";
+            opacity: 1;
+        }
+
+        th.sort-desc::after {
+            content: " ▼";
+            opacity: 1;
+        }
+
+        tr:nth-child(even) {
+            background-color: rgba(0, 255, 102, 0.03);
+        }
+
+        tr:hover {
+            background-color: rgba(0, 255, 102, 0.1);
+        }
+
+        .role-badge {
+            background-color: #050a05;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            border: 1px solid var(--accent-color);
+        }
+
+        .role-master { color: #ff3333; border-color: #ff3333; }
+        .role-officer { color: #33bbff; border-color: #33bbff; }
+        .role-member { color: #00ff66; border-color: #00ff66; }
+
+        #mainContent {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Password Protection Overlay -->
+    <div id="authOverlay">
+        <div class="auth-card">
+            <h2>Enter Password</h2>
+            <input type="password" id="passwordInput" placeholder="Password...">
+            <button id="loginBtn">Access Dashboard</button>
+            <div id="errorMsg" class="error-msg">Incorrect password. Please try again.</div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Container -->
+    <div id="mainContent">
+        <h1>Guild Data Extractor</h1>
+        
+        <div class="controls">
+            <div>
+                <label class="file-upload-label">
+                    <input type="file" id="jsonFileInput" multiple accept=".json,.txt,.html">
+                    Upload JSON File(s)
+                </label>
+            </div>
+            <div>
+                <button id="exportExcelBtn" style="display: none;">Export Multi-Sheet Excel</button>
+            </div>
+        </div>
+        
+        <textarea id="jsonPasteInput" placeholder="Alternatively, paste your raw JSON here (you can paste multiple files at once) and press process..."></textarea>
+        <button id="processPasteBtn">Process Pasted JSON</button>
+
+        <div id="dashboard" style="display: none; margin-top: 30px;">
+            <div class="tabs-container" id="tabsContainer"></div>
+            <h2 id="viewTitleDisplay">Dashboard</h2>
+            <div class="summary-cards" id="summaryCards"></div>
+            <h3 id="tableTitle">Data</h3>
+            <table>
+                <thead id="tableHead"></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Password Protection Logic
+        document.getElementById('loginBtn').addEventListener('click', checkPassword);
+        document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') checkPassword();
+        });
+
+        function checkPassword() {
+            const pass = document.getElementById('passwordInput').value;
+            const errorMsg = document.getElementById('errorMsg');
+            if (pass === 'info') {
+                document.getElementById('authOverlay').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+            } else {
+                errorMsg.style.display = 'block';
+            }
+        }
+
+        let parsedGuilds = [];
+        let currentSortColumn = null;
+        let currentSortDirection = 'asc';
+        let activeViewType = 'master'; 
+        let activeGuildIndex = null;
+
+        const formatNum = (num) => new Intl.NumberFormat('en-US').format(num || 0);
+
+        function extractAndParseJSON(rawText) {
+            let text = rawText.trim();
+            
+            if (text.startsWith('<')) {
+                try {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(text, 'text/html');
+                    const preTag = doc.querySelector('pre');
+                    text = preTag ? preTag.textContent.trim() : doc.body.textContent.trim();
+                } catch (e) {
+                    console.warn("HTML stripping failed, attempting raw parse.");
+                }
+            }
+            
+            try {
+                const parsed = JSON.parse(text);
+                return Array.isArray(parsed) ? parsed : [parsed];
+            } catch(e) {}
+
+            try {
+                if (!text.startsWith('[') && text.includes('}{')) {
+                    text = '[' + text.replace(/}\s*{/g, '},{') + ']';
+                    const parsed = JSON.parse(text);
+                    return Array.isArray(parsed) ? parsed : [parsed];
+                }
+            } catch(e) {}
+
+            throw new Error("Could not find valid JSON data. Please check what you pasted.");
+        }
+
+        document.getElementById('jsonFileInput').addEventListener('change', function(event) {
+            const files = event.target.files;
+            if (files.length === 0) return;
+            parsedGuilds = []; 
+            let filesRead = 0;
+
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const parsedDataArray = extractAndParseJSON(e.target.result);
+                        parsedDataArray.forEach(processJSONData);
+                    } catch (err) {
+                        alert(`Error processing file "${file.name}":\n\n${err.message}`);
+                    }
+                    filesRead++;
+                    if (filesRead === files.length) renderDashboard();
+                };
+                reader.readAsText(file);
+            });
+        });
+
+        document.getElementById('processPasteBtn').addEventListener('click', function() {
+            const rawText = document.getElementById('jsonPasteInput').value;
+            if (!rawText.trim()) return;
+            parsedGuilds = [];
+            try {
+                const parsedDataArray = extractAndParseJSON(rawText);
+                parsedDataArray.forEach(processJSONData);
+                renderDashboard();
+            } catch (err) {
+                alert(`Error processing pasted text:\n\n${err.message}`);
+            }
+        });
+
+        function processJSONData(data) {
+            let targetData = data;
+            if (data && data.result) {
+                targetData = data.result;
+            }
+
+            const guild = targetData.guild;
+            const members = targetData.members;
+
+            if (guild && members && Array.isArray(members)) {
+                const existingIndex = parsedGuilds.findIndex(g => g.guildInfo.id === guild.id);
+                
+                const processedMembers = members.map(m => {
+                    let isLocked = false;
+                    const now = new Date();
+                    const lockDates = [m.locked_gw_till, m.locked_gs_till, m.locked_regatta_till, m.locked_gf_till];
+                    
+                    for (let dateStr of lockDates) {
+                        if (dateStr && new Date(dateStr) > now) {
+                            isLocked = true;
+                            break;
+                        }
+                    }
+
+                    return {
+                        id: m.id,
+                        name: m.NameBit ? m.NameBit.Name : 'Unknown',
+                        country: m.NameBit ? m.NameBit.Country : 'N/A',
+                        role: m.role || 'member',
+                        power: m.remaining_power || 0,
+                        deployed: m.summary_power || 0,
+                        elixirSpent: m.spent_elixir || 0,
+                        lastVisit: m.last_visit ? m.last_visit.split('.')[0].replace('T', ' ') : 'Unknown',
+                        isLocked: isLocked
+                    };
+                }).sort((a, b) => b.deployed - a.deployed);
+
+                const guildObj = {
+                    guildInfo: {
+                        id: guild.id,
+                        name: guild.name || 'Unknown Guild',
+                        rank: guild.rank || '-',
+                        totalPower: guild.summary_power || 0,
+                        prevSummaryPower: guild.prev_summary_power || []
+                    },
+                    members: processedMembers
+                };
+
+                if (existingIndex !== -1) {
+                    parsedGuilds[existingIndex] = guildObj;
+                } else {
+                    parsedGuilds.push(guildObj);
+                }
+            }
+        }
+
+        function renderDashboard() {
+            if (parsedGuilds.length === 0) return;
+
+            document.getElementById('dashboard').style.display = 'block';
+            document.getElementById('exportExcelBtn').style.display = 'block';
+
+            renderTabs();
+            renderMasterView(); 
+        }
+
+        function renderTabs() {
+            const tabsContainer = document.getElementById('tabsContainer');
+            tabsContainer.innerHTML = '';
+
+            const masterBtn = document.createElement('button');
+            masterBtn.className = 'tab-btn active';
+            masterBtn.textContent = 'Master Summary';
+            masterBtn.onclick = () => {
+                setActiveTab(masterBtn);
+                renderMasterView();
+            };
+            tabsContainer.appendChild(masterBtn);
+
+            parsedGuilds.forEach((g, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'tab-btn';
+                btn.textContent = g.guildInfo.name;
+                btn.onclick = () => {
+                    setActiveTab(btn);
+                    renderGuildView(index);
+                };
+                tabsContainer.appendChild(btn);
+            });
+        }
+
+        function setActiveTab(clickedBtn) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            clickedBtn.classList.add('active');
+            currentSortColumn = null;
+            currentSortDirection = 'asc';
+        }
+
+        function renderMasterView() {
+            activeViewType = 'master';
+            activeGuildIndex = null;
+            document.getElementById('viewTitleDisplay').innerText = 'Master Summary';
+            document.getElementById('summaryCards').innerHTML = '';
+            document.getElementById('tableTitle').innerText = 'Guild Overview';
+
+            document.getElementById('tableHead').innerHTML = `
+                <tr>
+                    <th onclick="sortMasterTable('name')">Guild Name</th>
+                    <th onclick="sortMasterTable('totalPower')">Total Power</th>
+                    <th onclick="sortMasterTable('deployed')">Deployed Power</th>
+                    <th onclick="sortMasterTable('elx')">Total Elixir Spent</th>
+                    <th onclick="sortMasterTable('estRem')">Est Remaining Power</th>
+                    <th onclick="sortMasterTable('locked')">Locked Power</th>
+                    <th onclick="sortMasterTable('nextMap')">Next Map</th>
+                </tr>
+            `;
+
+            populateMasterTableBody();
+        }
+
+        function getMasterDataList() {
+            return parsedGuilds.map(g => {
+                const tPower = g.guildInfo.totalPower || 0;
+                const dep = g.members.reduce((sum, m) => sum + m.deployed, 0);
+                const estRem = g.members.filter(m => m.deployed === 0).reduce((sum, m) => sum + m.power, 0);
+                const elx = g.members.reduce((sum, m) => sum + m.elixirSpent, 0);
+                const locked = g.members.filter(m => m.isLocked).reduce((sum, m) => sum + m.power, 0);
+                const prevPowers = g.guildInfo.prevSummaryPower || [];
+                const p1 = prevPowers[0] || 0;
+                const p2 = prevPowers[1] || 0;
+                const nextMap = Math.round((tPower + p1 + p2) * 0.30);
+
+                return {
+                    name: g.guildInfo.name,
+                    totalPower: tPower,
+                    deployed: dep,
+                    elx: elx,
+                    estRem: estRem,
+                    locked: locked,
+                    nextMap: nextMap
+                };
+            });
+        }
+
+        function populateMasterTableBody() {
+            let dataList = getMasterDataList();
+
+            if (currentSortColumn) {
+                dataList.sort((a, b) => {
+                    let valA = a[currentSortColumn];
+                    let valB = b[currentSortColumn];
+                    if (typeof valA === 'string') {
+                        valA = valA.toLowerCase();
+                        valB = valB.toLowerCase();
+                    }
+                    if (valA < valB) return currentSortDirection === 'asc' ? -1 : 1;
+                    if (valA > valB) return currentSortDirection === 'asc' ? 1 : -1;
+                    return 0;
+                });
+            } else {
+                dataList.sort((a, b) => b.totalPower - a.totalPower);
+            }
+
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            dataList.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${item.name}</strong></td>
+                    <td>${formatNum(item.totalPower)}</td>
+                    <td>${formatNum(item.deployed)}</td>
+                    <td>${formatNum(item.elx)}</td>
+                    <td>${formatNum(item.estRem)}</td>
+                    <td>${formatNum(item.locked)}</td>
+                    <td>${formatNum(item.nextMap)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            updateHeaderStyles();
+        }
+
+        function sortMasterTable(column) {
+            if (currentSortColumn === column) {
+                currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortColumn = column;
+                currentSortDirection = 'asc';
+            }
+            populateMasterTableBody();
+        }
+
+        function renderGuildView(index) {
+            activeViewType = 'guild';
+            activeGuildIndex = index;
+            const g = parsedGuilds[index];
+            document.getElementById('viewTitleDisplay').innerText = `${g.guildInfo.name} - RANK #${g.guildInfo.rank}`;
+
+            const totalMembers = g.members.length;
+            const totalPower = g.guildInfo.totalPower || 0;
+            const deployedPower = g.members.reduce((sum, m) => sum + m.deployed, 0);
+            const estRemainingPower = g.members.filter(m => m.deployed === 0).reduce((sum, m) => sum + m.power, 0);
+            const totalElixir = g.members.reduce((sum, m) => sum + m.elixirSpent, 0);
+            const lockedPower = g.members.filter(m => m.isLocked).reduce((sum, m) => sum + m.power, 0);
+            const avgNextMap = totalMembers > 0 ? Math.round((deployedPower + estRemainingPower) / totalMembers) : 0;
+
+            document.getElementById('summaryCards').innerHTML = `
+                <div class="card"><div class="card-title">Total Members</div><div class="card-value">${totalMembers}</div></div>
+                <div class="card"><div class="card-title">Total Power</div><div class="card-value">${formatNum(totalPower)}</div></div>
+                <div class="card"><div class="card-title">Deployed Power</div><div class="card-value">${formatNum(deployedPower)}</div></div>
+                <div class="card"><div class="card-title">Est. Remaining Power</div><div class="card-value">${formatNum(estRemainingPower)}</div></div>
+                <div class="card"><div class="card-title">Total Elixir Spent</div><div class="card-value">${formatNum(totalElixir)}</div></div>
+                <div class="card"><div class="card-title">Locked Power</div><div class="card-value">${formatNum(lockedPower)}</div></div>
+                <div class="card"><div class="card-title">Average Next Map</div><div class="card-value">${formatNum(avgNextMap)}</div></div>
+            `;
+
+            document.getElementById('tableTitle').innerText = 'Guild Members';
+            document.getElementById('tableHead').innerHTML = `
+                <tr>
+                    <th>#</th>
+                    <th onclick="sortGuildTable('name')">Name</th>
+                    <th onclick="sortGuildTable('country')">Country</th>
+                    <th onclick="sortGuildTable('role')">Role</th>
+                    <th onclick="sortGuildTable('power')">Power</th>
+                    <th onclick="sortGuildTable('deployed')">Deployed</th>
+                    <th onclick="sortGuildTable('elixirSpent')">Elixir Spent</th>
+                    <th onclick="sortGuildTable('lastVisit')">Last Signed On</th>
+                </tr>
+            `;
+
+            populateGuildTableBody();
+        }
+
+        function populateGuildTableBody() {
+            const g = parsedGuilds[activeGuildIndex];
+            let membersCopy = [...g.members];
+
+            if (currentSortColumn) {
+                membersCopy.sort((a, b) => {
+                    let valA = a[currentSortColumn];
+                    let valB = b[currentSortColumn];
+                    if (typeof valA === 'string') {
+                        valA = valA.toLowerCase();
+                        valB = valB.toLowerCase();
+                    }
+                    if (valA < valB) return currentSortDirection === 'asc' ? -1 : 1;
+                    if (valA > valB) return currentSortDirection === 'asc' ? 1 : -1;
+                    return 0;
+                });
+            } else {
+                membersCopy.sort((a, b) => b.deployed - a.deployed);
+            }
+
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            membersCopy.forEach((m, idx) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${idx + 1}</td>
+                    <td><strong>${m.name}</strong></td>
+                    <td>${m.country}</td>
+                    <td><span class="role-badge role-${m.role}">${m.role}</span></td>
+                    <td>${formatNum(m.power)}</td>
+                    <td>${formatNum(m.deployed)}</td>
+                    <td>${formatNum(m.elixirSpent)}</td>
+                    <td>${m.lastVisit}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            updateHeaderStyles();
+        }
+
+        function sortGuildTable(column) {
+            if (currentSortColumn === column) {
+                currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortColumn = column;
+                currentSortDirection = 'asc';
+            }
+            populateGuildTableBody();
+        }
+
+        function updateHeaderStyles() {
+            const headers = document.querySelectorAll('#tableHead th');
+            headers.forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
+                if (currentSortColumn && th.getAttribute('onclick') && th.getAttribute('onclick').includes(currentSortColumn)) {
+                    th.classList.add(currentSortDirection === 'asc' ? 'sort-asc' : 'sort-desc');
+                }
+            });
+        }
+
+        document.getElementById('exportExcelBtn').addEventListener('click', function() {
+            if (parsedGuilds.length === 0) {
+                alert("No data available to export.");
+                return;
+            }
+
+            try {
+                const wb = XLSX.utils.book_new();
+                const usedSheetNames = new Set();
+
+                const masterData = parsedGuilds.map(g => {
+                    const tPower = g.guildInfo.totalPower || 0;
+                    const estRem = g.members.filter(m => m.deployed === 0).reduce((sum, m) => sum + m.power, 0);
+                    const elx = g.members.reduce((sum, m) => sum + m.elixirSpent, 0);
+                    const prevPowers = g.guildInfo.prevSummaryPower || [];
+                    const p1 = prevPowers[0] || 0;
+                    const p2 = prevPowers[1] || 0;
+                    const nextMap = Math.round((tPower + p1 + p2) * 0.30);
+
+                    return {
+                        "Guild Name": g.guildInfo.name,
+                        "Total Power": tPower,
+                        "Deployed Power": g.members.reduce((sum, m) => sum + m.deployed, 0),
+                        "Total Elixir Spent": elx,
+                        "Est Remaining Power": estRem,
+                        "Locked Power": g.members.filter(m => m.isLocked).reduce((sum, m) => sum + m.power, 0),
+                        "Next Map": nextMap
+                    };
+                });
+                const wsMaster = XLSX.utils.json_to_sheet(masterData);
+                XLSX.utils.book_append_sheet(wb, wsMaster, "Master Summary");
+                usedSheetNames.add("Master Summary");
+
+                parsedGuilds.forEach((g) => {
+                    const guildData = g.members.map((m, index) => ({
+                        "#": index + 1,
+                        "Name": m.name,
+                        "Country": m.country,
+                        "Role": m.role,
+                        "Power": m.power,
+                        "Deployed": m.deployed,
+                        "Elixir Spent": m.elixirSpent,
+                        "Last Signed On": m.lastVisit,
+                        "Locked Status": m.isLocked ? "Locked" : "Active"
+                    }));
+                    
+                    let safeSheetName = g.guildInfo.name.substring(0, 31).replace(/[\\/?*\[\]:]/g, '').trim();
+                    if(safeSheetName === "") safeSheetName = "Unknown Guild";
+
+                    let finalSheetName = safeSheetName;
+                    let counter = 1;
+                    while (usedSheetNames.has(finalSheetName)) {
+                        let suffix = ` (${counter})`;
+                        finalSheetName = safeSheetName.substring(0, 31 - suffix.length) + suffix;
+                        counter++;
+                    }
+                    usedSheetNames.add(finalSheetName);
+
+                    const wsGuild = XLSX.utils.json_to_sheet(guildData);
+                    XLSX.utils.book_append_sheet(wb, wsGuild, finalSheetName);
+                });
+                
+                XLSX.writeFile(wb, "Guild_Dashboard_Export.xlsx");
+            } catch (err) {
+                console.error("Export Error:", err);
+                alert("An error occurred while trying to create the Excel file: " + err.message);
+            }
+        });
+    </script>
+</body>
+</html>
