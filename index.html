@@ -326,6 +326,31 @@
 
         const formatNum = (num) => new Intl.NumberFormat('en-US').format(num || 0);
 
+        // Relative time formatter function
+        function formatRelativeTime(dateStr) {
+            if (!dateStr || dateStr === 'Unknown') return 'Unknown';
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) return dateStr;
+
+            const seconds = Math.floor((new Date() - date) / 1000);
+            if (seconds < 60) return 'Just now';
+            
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'}`;
+            
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'}`;
+            
+            const days = Math.floor(hours / 24);
+            if (days < 30) return `${days} day${days === 1 ? '' : 's'}`;
+            
+            const months = Math.floor(days / 30);
+            if (months < 12) return `${months} month${months === 1 ? '' : 's'}`;
+            
+            const years = Math.floor(days / 365);
+            return `${years} year${years === 1 ? '' : 's'}`;
+        }
+
         function extractAndParseJSON(rawText) {
             let text = rawText.trim();
             
@@ -423,7 +448,7 @@
                         power: m.remaining_power || 0,
                         deployed: m.summary_power || 0,
                         elixirSpent: m.spent_elixir || 0,
-                        lastVisit: m.last_visit ? m.last_visit.split('.')[0].replace('T', ' ') : 'Unknown',
+                        lastVisit: m.last_visit || 'Unknown',
                         isLocked: isLocked
                     };
                 }).sort((a, b) => b.deployed - a.deployed);
@@ -503,6 +528,7 @@
                     <th onclick="sortMasterTable('deployed')">Deployed Power</th>
                     <th onclick="sortMasterTable('elx')">Total Elixir Spent</th>
                     <th onclick="sortMasterTable('estRem')">Est Remaining Power</th>
+                    <th onclick="sortMasterTable('snipers')">Snipers</th>
                     <th onclick="sortMasterTable('locked')">Locked Power</th>
                     <th onclick="sortMasterTable('nextMap')">Next Map</th>
                 </tr>
@@ -512,10 +538,21 @@
         }
 
         function getMasterDataList() {
+            const now = new Date();
             return parsedGuilds.map(g => {
                 const tPower = g.guildInfo.totalPower || 0;
                 const dep = g.members.reduce((sum, m) => sum + m.deployed, 0);
-                const estRem = g.members.filter(m => m.deployed === 0).reduce((sum, m) => sum + m.power, 0);
+                const estRem = g.members.filter(m => m.deployed < 100000).reduce((sum, m) => sum + m.power, 0);
+                
+                // Snipers: Signed in within last 30 minutes AND deployed < 100,000 troops
+                const snipers = g.members.filter(m => {
+                    if (m.deployed >= 100000) return false;
+                    if (!m.lastVisit || m.lastVisit === 'Unknown') return false;
+                    const visitDate = new Date(m.lastVisit);
+                    if (isNaN(visitDate.getTime())) return false;
+                    return (now - visitDate) <= (30 * 60 * 1000);
+                }).reduce((sum, m) => sum + m.power, 0);
+
                 const elx = g.members.reduce((sum, m) => sum + m.elixirSpent, 0);
                 const locked = g.members.filter(m => m.isLocked).reduce((sum, m) => sum + m.power, 0);
                 const prevPowers = g.guildInfo.prevSummaryPower || [];
@@ -529,6 +566,7 @@
                     deployed: dep,
                     elx: elx,
                     estRem: estRem,
+                    snipers: snipers,
                     locked: locked,
                     nextMap: nextMap
                 };
@@ -565,6 +603,7 @@
                     <td>${formatNum(item.deployed)}</td>
                     <td>${formatNum(item.elx)}</td>
                     <td>${formatNum(item.estRem)}</td>
+                    <td>${formatNum(item.snipers)}</td>
                     <td>${formatNum(item.locked)}</td>
                     <td>${formatNum(item.nextMap)}</td>
                 `;
@@ -592,7 +631,7 @@
             const totalMembers = g.members.length;
             const totalPower = g.guildInfo.totalPower || 0;
             const deployedPower = g.members.reduce((sum, m) => sum + m.deployed, 0);
-            const estRemainingPower = g.members.filter(m => m.deployed === 0).reduce((sum, m) => sum + m.power, 0);
+            const estRemainingPower = g.members.filter(m => m.deployed < 100000).reduce((sum, m) => sum + m.power, 0);
             const totalElixir = g.members.reduce((sum, m) => sum + m.elixirSpent, 0);
             const lockedPower = g.members.filter(m => m.isLocked).reduce((sum, m) => sum + m.power, 0);
             const avgNextMap = totalMembers > 0 ? Math.round((deployedPower + estRemainingPower) / totalMembers) : 0;
@@ -657,7 +696,7 @@
                     <td>${formatNum(m.power)}</td>
                     <td>${formatNum(m.deployed)}</td>
                     <td>${formatNum(m.elixirSpent)}</td>
-                    <td>${m.lastVisit}</td>
+                    <td>${formatRelativeTime(m.lastVisit)}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -693,10 +732,19 @@
             try {
                 const wb = XLSX.utils.book_new();
                 const usedSheetNames = new Set();
+                const now = new Date();
 
                 const masterData = parsedGuilds.map(g => {
                     const tPower = g.guildInfo.totalPower || 0;
-                    const estRem = g.members.filter(m => m.deployed === 0).reduce((sum, m) => sum + m.power, 0);
+                    const estRem = g.members.filter(m => m.deployed < 100000).reduce((sum, m) => sum + m.power, 0);
+                    const snipers = g.members.filter(m => {
+                        if (m.deployed >= 100000) return false;
+                        if (!m.lastVisit || m.lastVisit === 'Unknown') return false;
+                        const visitDate = new Date(m.lastVisit);
+                        if (isNaN(visitDate.getTime())) return false;
+                        return (now - visitDate) <= (30 * 60 * 1000);
+                    }).reduce((sum, m) => sum + m.power, 0);
+
                     const elx = g.members.reduce((sum, m) => sum + m.elixirSpent, 0);
                     const prevPowers = g.guildInfo.prevSummaryPower || [];
                     const p1 = prevPowers[0] || 0;
@@ -709,6 +757,7 @@
                         "Deployed Power": g.members.reduce((sum, m) => sum + m.deployed, 0),
                         "Total Elixir Spent": elx,
                         "Est Remaining Power": estRem,
+                        "Snipers": snipers,
                         "Locked Power": g.members.filter(m => m.isLocked).reduce((sum, m) => sum + m.power, 0),
                         "Next Map": nextMap
                     };
@@ -726,7 +775,7 @@
                         "Power": m.power,
                         "Deployed": m.deployed,
                         "Elixir Spent": m.elixirSpent,
-                        "Last Signed On": m.lastVisit,
+                        "Last Signed On": formatRelativeTime(m.lastVisit),
                         "Locked Status": m.isLocked ? "Locked" : "Active"
                     }));
                     
