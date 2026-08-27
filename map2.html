@@ -11,8 +11,6 @@
     .btn-group { margin-bottom: 20px; display: flex; gap: 10px; width: 100%; max-width: 950px; }
     button { background: #7289da; color: white; border: none; padding: 12px 24px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: 14px; }
     button:hover { background: #5b6eae; }
-    .btn-download { background: #43b581; }
-    .btn-download:hover { background: #35a371; }
     
     .war-board { display: inline-block; background: #23272a; padding: 20px; border-radius: 8px; border: 2px solid #b8860b; position: relative; margin-bottom: 20px; }
     .grid-layout { display: grid; grid-template-columns: 45px repeat(6, 130px) 45px; grid-template-rows: 45px repeat(5, 120px) 45px; gap: 4px; align-items: center; justify-items: center; }
@@ -56,7 +54,6 @@
 
 <div class="btn-group">
     <button onclick="generateMap()">Generate Map</button>
-    <button class="btn-download" onclick="downloadPage()">Download HTML File</button>
 </div>
 
 <div class="war-board" id="warBoard">
@@ -346,7 +343,6 @@ function generateMap() {
                     });
                 }
 
-                // Determine highest attacker and net troop calculation
                 let maxAttackerPower = -1;
                 let topAttackerName = null;
                 let topAttackerColor = '#ffffff';
@@ -425,7 +421,6 @@ function generateMap() {
     }
     gridLayout.appendChild(document.createElement('div'));
 }
-
 </script>
 
 </body>
