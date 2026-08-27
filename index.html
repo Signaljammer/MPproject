@@ -804,43 +804,16 @@
     </script>
 </body>
 </html>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Website Home</title>
-    <style>
-        body {
-            background-color: #343536;
-            color: white;
-            font-family: sans-serif;
-            text-align: center;
-            padding: 50px;
-        }
-        a.map-link {
-            display: inline-block;
-            background-color: #555;
-            color: #fff;
-            padding: 12px 24px;
-            font-size: 1.2rem;
-            text-decoration: none;
-            border-radius: 6px;
-            border: 1px solid #777;
-            margin-top: 20px;
-        }
-        a.map-link:hover {
-            background-color: #777;
-        }
-    </style>
-</head>
-<body>
-
-    <h1>Welcome to My Guild Website</h1>
-    <p>Click below to view the interactive guild war map generator.</p>
+<!-- Input Section -->
+<div class="input-section">
+    <label for="jsonInput">Paste Guild War JSON Data:</label>
+    <textarea id="jsonInput" placeholder='{ "result": { "cells": [ ... ] } }'></textarea>
     
-    <!-- Link to your map page -->
-    <a href="map.html" class="map-link">Go to Guild War Map</a>
-
-</body>
-</html>
+    <div style="display: flex; gap: 10px;">
+        <button id="generateBtn">Generate Map</button>
+        <!-- Button to flip/link to another page -->
+        <button onclick="window.location.href='map.html'">Go to Map Page</button>
+    </div>
+    
+    <div id="error-message"></div>
+</div>
