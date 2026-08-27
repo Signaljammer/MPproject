@@ -1,428 +1,451 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guild War Map</title>
-    <style>
-        :root {
-            --bg-page: #343536;
-            --grid-line: #ffffff;
-            --text-main: #ffffff;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guild War Map Generator - Turfwar Template</title>
+<style>
+    :root {
+        --bg-page: #343536;
+        --grid-line: #ffffff;
+        --text-main: #ffffff;
+    }
 
-        body {
-            background-color: var(--bg-page);
-            color: var(--text-main);
-            font-family: 'Times New Roman', Times, serif;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+    body {
+        background-color: var(--bg-page);
+        color: var(--text-main);
+        font-family: 'Times New Roman', Times, serif;
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
 
-        /* --- Input Section Styles --- */
-        .input-section {
-            width: 100%;
-            max-width: 900px;
-            margin-bottom: 30px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            background-color: rgba(0, 0, 0, 0.3);
-            padding: 15px;
-            border-radius: 4px;
-            font-family: sans-serif;
-        }
+    /* --- Input Sections --- */
+    .input-section { 
+        display: flex; 
+        gap: 20px; 
+        margin-bottom: 15px; 
+        width: 100%; 
+        max-width: 950px; 
+        font-family: sans-serif;
+    }
+    .input-box { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+    textarea { 
+        width: 100%; 
+        height: 100px; 
+        background: #1e1e1e; 
+        color: #ccc; 
+        border: 1px solid #555; 
+        border-radius: 4px;
+        padding: 10px; 
+        font-family: monospace; 
+        font-size: 13px; 
+        box-sizing: border-box;
+        resize: vertical;
+    }
+    .btn-group { margin-bottom: 20px; display: flex; gap: 10px; width: 100%; max-width: 950px; font-family: sans-serif; }
+    button { 
+        background: #555; 
+        color: white; 
+        border: 1px solid #777; 
+        padding: 10px 20px; 
+        cursor: pointer; 
+        font-weight: bold; 
+        border-radius: 4px; 
+        font-size: 1rem; 
+    }
+    button:hover { background: #777; }
+    .btn-download { background: #43b581; border-color: #35a371; }
+    .btn-download:hover { background: #35a371; }
+    #error-message { color: #ff6b6b; font-weight: bold; font-size: 0.9rem; font-family: sans-serif; margin-bottom: 15px; width: 100%; max-width: 950px; }
 
-        textarea {
-            width: 100%;
-            height: 100px;
-            background-color: #1e1e1e;
-            color: #ccc;
-            border: 1px solid #555;
-            border-radius: 4px;
-            padding: 10px;
-            font-family: monospace;
-            resize: vertical;
-            box-sizing: border-box;
-        }
+    /* --- Map Board Styles --- */
+    .war-board { display: inline-block; background: #23272a; padding: 20px; border-radius: 8px; border: 2px solid #b8860b; position: relative; margin-bottom: 20px; }
+    .grid-layout { display: grid; grid-template-columns: 45px repeat(6, 130px) 45px; grid-template-rows: 45px repeat(5, 120px) 45px; gap: 0; align-items: center; justify-items: center; }
 
-        button {
-            background-color: #555;
-            color: #fff;
-            border: 1px solid #777;
-            padding: 8px 16px;
-            font-size: 1rem;
-            border-radius: 4px;
-            cursor: pointer;
-            align-self: flex-start;
-        }
+    .cell { border: 1px solid #ffffff; width: 130px; height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px; box-sizing: border-box; overflow: hidden; text-align: center; background-color: #4f545c; position: relative; }
+    .cell-power { font-size: 26px; margin-bottom: 4px; font-weight: bold; text-shadow: -1px -1px 0 #555, 1px -1px 0 #555, -1px 1px 0 #555, 1px 1px 0 #555, 2px 2px 4px rgba(0,0,0,0.9); white-space: normal; word-break: break-all; z-index: 5; }
+    
+    .force-row { font-size: 21px; margin-top: 3px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; text-shadow: -1px -1px 0 #333, 1px -1px 0 #333, -1px 1px 0 #333, 1px 1px 0 #333; z-index: 5; }
+    .force-color-square { width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.7); display: inline-block; flex-shrink: 0; box-shadow: 1px 1px 2px rgba(0,0,0,0.7); }
+    .force-power { font-weight: bold; }
+    
+    .winning-enemy { text-decoration: underline; }
 
-        button:hover {
-            background-color: #777;
-        }
+    .perimeter-stack { display: flex; flex-direction: row; gap: 2px; width: 130px; height: 40px; align-items: center; justify-content: center; flex-wrap: wrap; overflow: hidden; }
+    .side-stack { display: flex; flex-direction: column; gap: 2px; width: 40px; height: 120px; align-items: center; justify-content: center; flex-wrap: wrap; overflow: hidden; }
+    
+    .guild-tag-box-h { width: 22px; height: 12px; border-radius: 2px; border: 1px solid rgba(255,255,255,0.7); box-shadow: 1px 1px 2px rgba(0,0,0,0.7); }
+    .guild-tag-box-v { width: 12px; height: 22px; border-radius: 2px; border: 1px solid rgba(255,255,255,0.7); box-shadow: 1px 1px 2px rgba(0,0,0,0.7); }
 
-        #error-message {
-            color: #ff6b6b;
-            font-weight: bold;
-            font-size: 0.9rem;
-        }
+    .color-swatch { width: 14px; height: 14px; border-radius: 3px; border: 1px solid #fff; flex-shrink: 0; }
 
-        /* --- Map Container Styles --- */
-        .map-container {
-            display: grid;
-            grid-template-columns: 40px repeat(6, 140px);
-            grid-template-rows: 40px repeat(5, 140px);
-            gap: 0; /* No gaps between tiles */
-            justify-content: center;
-            margin-bottom: 20px;
-            padding: 20px; /* Padding prevents outer markers from being clipped */
-        }
+    .legend-box { background: #23272a; padding: 20px; border-radius: 8px; border: 1px solid #7289da; width: 100%; max-width: 850px; box-sizing: border-box; }
+    .legend-columns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; justify-items: center; }
+    .legend-col { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 250px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; font-family: sans-serif; }
 
-        .header-col {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 1.8rem;
-            color: #e0e0e0;
-        }
-
-        .header-row {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 1.8rem;
-            color: #e0e0e0;
-        }
-
-        .cell {
-            position: relative;
-            background-color: #738295;
-            border: 1px solid var(--grid-line);
-            display: flex;
-            flex-direction: column;
-            padding: 12px 8px; 
-            box-sizing: border-box;
-        }
-
-        .power-main {
-            font-size: 1.8rem;
-            color: #fff;
-            text-shadow: -1px -1px 0 #555, 1px -1px 0 #555, -1px 1px 0 #555, 1px 1px 0 #555, 2px 2px 4px rgba(0,0,0,0.5);
-            margin-bottom: 6px;
-            letter-spacing: 1px;
-            text-align: center;
-            z-index: 5;
-        }
-
-        .forces-list {
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-            z-index: 5;
-        }
-
-        .force-item {
-            display: flex;
-            align-items: center;
-            font-size: 1.1rem;
-            color: #fff;
-            text-shadow: -1px -1px 0 #333, 1px -1px 0 #333, -1px 1px 0 #333, 1px 1px 0 #333;
-        }
-
-        .force-circle {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            border: 1px solid #111;
-            margin-right: 6px;
-            box-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-        }
-
-        /* --- Entrance Indicators (Outside Dots) --- */
-        .entrance-container {
-            position: absolute;
-            display: flex;
-            gap: 4px;
-            z-index: 20;
-        }
-        
-        /* Positioned fully outside the cell borders */
-        .entrance-top { top: -14px; left: 50%; transform: translateX(-50%); flex-direction: row; }
-        .entrance-bottom { bottom: -14px; left: 50%; transform: translateX(-50%); flex-direction: row; }
-        .entrance-left { left: -14px; top: 50%; transform: translateY(-50%); flex-direction: column; }
-        .entrance-right { right: -14px; top: 50%; transform: translateY(-50%); flex-direction: column; }
-        
-        .entrance-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            border: 2px solid rgba(255, 255, 255, 0.9);
-            box-shadow: 0 1px 4px rgba(0,0,0,1);
-        }
-
-        /* --- Legend Styles --- */
-        .legend-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 15px;
-            max-width: 900px;
-            margin-top: 20px;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            font-size: 1.2rem;
-            color: #fff;
-        }
-
-        .legend-box {
-            width: 16px;
-            height: 16px;
-            border: 1px solid #fff;
-            margin-right: 8px;
-        }
-    </style>
+    /* Outside Entrance Dots */
+    .entrance-container { position: absolute; display: flex; gap: 4px; z-index: 20; }
+    .entrance-top { top: -14px; left: 50%; transform: translateX(-50%); flex-direction: row; }
+    .entrance-bottom { bottom: -14px; left: 50%; transform: translateX(-50%); flex-direction: row; }
+    .entrance-left { left: -14px; top: 50%; transform: translateY(-50%); flex-direction: column; }
+    .entrance-right { right: -14px; top: 50%; transform: translateY(-50%); flex-direction: column; }
+    
+    .entrance-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.9);
+        box-shadow: 0 1px 4px rgba(0,0,0,1);
+    }
+</style>
 </head>
 <body>
 
-    <!-- Input Section -->
-    <div class="input-section">
-        <label for="jsonInput">Paste Guild War JSON Data:</label>
-        <textarea id="jsonInput" placeholder='{ "result": { "cells": [ ... ] } }'></textarea>
-        <button id="generateBtn">Generate Map</button>
-        <div id="error-message"></div>
+<h1>Guild War Map Generator</h1>
+
+<div class="input-section">
+    <div class="input-box">
+        <label><b>1. Get Room Guilds JSON (for guild order &amp; entrances):</b></label>
+        <textarea id="roomInput" placeholder="Paste get room guilds JSON here..."></textarea>
     </div>
+    <div class="input-box">
+        <label><b>2. Get Map JSON (for internal cell data &amp; forces):</b></label>
+        <textarea id="mapInput" placeholder="Paste get map JSON here..."></textarea>
+    </div>
+</div>
 
-    <!-- Map and Legend -->
-    <div id="map" class="map-container"></div>
-    <div id="legend" class="legend-container"></div>
+<div class="btn-group">
+    <button onclick="generateMap()">Generate Map</button>
+    <button class="btn-download" onclick="downloadPage()">Download HTML File</button>
+    <button onclick="window.location.href='index.html'">Back to Home</button>
+</div>
 
-    <script>
-        const mapElement = document.getElementById('map');
-        const legendElement = document.getElementById('legend');
-        const jsonInput = document.getElementById('jsonInput');
-        const generateBtn = document.getElementById('generateBtn');
-        const errorMessage = document.getElementById('error-message');
+<div id="error-message"></div>
 
-        const rows = ['A', 'B', 'C', 'D', 'E']; // y = 4 to 0
-        const cols = [1, 2, 3, 4, 5, 6];       // x = 0 to 5
+<div class="war-board" id="warBoard">
+    <div class="grid-layout" id="gridLayout"></div>
+</div>
 
-        // Dynamic Color Palette
-        const colorPalette = [
-            '#92c353', '#7faad4', '#a658a6', '#e1aa56', 
-            '#9d4040', '#e4a8b7', '#8f7a63', '#e6e1d6', 
-            '#d46a6a', '#4a90e2', '#f1c40f', '#1abc9c'
-        ];
-        const defaultColor = '#738295'; // Neutral Grey
+<div class="legend-box" id="statusLegendBox">
+    <div class="legend-columns">
+        <div class="legend-col" id="statusCol1"></div>
+        <div class="legend-col" id="statusCol2"></div>
+        <div class="legend-col" id="statusCol3"></div>
+    </div>
+</div>
 
-        let guildColors = {};
-        let colorIndex = 0;
+<script>
+const fixedGuildColors = {
+    1: "#76ecd0", 
+    2: "#95edff", 
+    3: "#4a89ff", 
+    4: "#b19ffb", 
+    5: "#ff4d4d", 
+    6: "#ff9e3b", 
+    7: "#fef064", 
+    8: "#ffffff", 
+    9: "#8a3b3b", 
+    10: "#ffb3d9"
+};
 
-        // Entrances reference mapped to guild_room_place (1-10) using grid coordinates
-        const entrancesMap = {
-            1: [{x:3, y:4, pos:'top'}, {x:1, y:0, pos:'bottom'}, {x:0, y:3, pos:'left'}, {x:5, y:3, pos:'right'}, {x:5, y:0, pos:'right'}],
-            2: [{x:3, y:4, pos:'top'}, {x:1, y:0, pos:'bottom'}, {x:0, y:3, pos:'left'}, {x:5, y:3, pos:'right'}, {x:5, y:0, pos:'right'}],
-            3: [{x:3, y:4, pos:'top'}, {x:2, y:0, pos:'bottom'}, {x:0, y:1, pos:'left'}, {x:5, y:3, pos:'right'}, {x:5, y:0, pos:'right'}],
-            4: [{x:4, y:4, pos:'top'}, {x:3, y:0, pos:'bottom'}, {x:0, y:3, pos:'left'}, {x:0, y:0, pos:'left'}, {x:5, y:2, pos:'right'}],
-            5: [{x:2, y:4, pos:'top'}, {x:1, y:0, pos:'bottom'}, {x:4, y:0, pos:'bottom'}, {x:0, y:2, pos:'left'}, {x:5, y:4, pos:'right'}],
-            6: [{x:2, y:4, pos:'top'}, {x:1, y:0, pos:'bottom'}, {x:4, y:0, pos:'bottom'}, {x:0, y:3, pos:'left'}, {x:5, y:1, pos:'right'}],
-            7: [{x:0, y:4, pos:'top'}, {x:3, y:4, pos:'top'}, {x:2, y:0, pos:'bottom'}, {x:0, y:4, pos:'left'}, {x:0, y:1, pos:'left'}, {x:5, y:2, pos:'right'}],
-            8: [{x:1, y:4, pos:'top'}, {x:3, y:0, pos:'bottom'}, {x:0, y:2, pos:'left'}, {x:5, y:4, pos:'right'}, {x:5, y:1, pos:'right'}],
-            9: [{x:1, y:4, pos:'top'}, {x:4, y:4, pos:'top'}, {x:4, y:0, pos:'bottom'}, {x:0, y:0, pos:'left'}, {x:5, y:3, pos:'right'}],
-            10: [{x:1, y:4, pos:'top'}, {x:4, y:4, pos:'top'}, {x:2, y:0, pos:'bottom'}, {x:0, y:2, pos:'left'}, {x:5, y:2, pos:'right'}]
-        };
+function getGuildColor(position) {
+    const templateIndex = ((position - 1) % 10) + 1;
+    return fixedGuildColors[templateIndex] || "#36393f";
+}
 
-        generateBtn.addEventListener('click', () => {
-            errorMessage.innerText = ""; 
-            const rawText = jsonInput.value.trim();
+const entranceTemplates = {
+    1: [{x:3, y:4, pos:'top'}, {x:1, y:0, pos:'bottom'}, {x:0, y:3, pos:'left'}, {x:5, y:3, pos:'right'}, {x:5, y:0, pos:'right'}],
+    2: [{x:3, y:4, pos:'top'}, {x:1, y:0, pos:'bottom'}, {x:0, y:3, pos:'left'}, {x:5, y:3, pos:'right'}, {x:5, y:0, pos:'right'}],
+    3: [{x:3, y:4, pos:'top'}, {x:2, y:0, pos:'bottom'}, {x:0, y:1, pos:'left'}, {x:5, y:3, pos:'right'}, {x:5, y:0, pos:'right'}],
+    4: [{x:4, y:4, pos:'top'}, {x:3, y:0, pos:'bottom'}, {x:0, y:3, pos:'left'}, {x:0, y:0, pos:'left'}, {x:5, y:2, pos:'right'}],
+    5: [{x:2, y:4, pos:'top'}, {x:1, y:0, pos:'bottom'}, {x:4, y:0, pos:'bottom'}, {x:0, y:2, pos:'left'}, {x:5, y:4, pos:'right'}],
+    6: [{x:2, y:4, pos:'top'}, {x:1, y:0, pos:'bottom'}, {x:4, y:0, pos:'bottom'}, {x:0, y:3, pos:'left'}, {x:5, y:1, pos:'right'}],
+    7: [{x:0, y:4, pos:'top'}, {x:3, y:4, pos:'top'}, {x:2, y:0, pos:'bottom'}, {x:0, y:4, pos:'left'}, {x:0, y:1, pos:'left'}, {x:5, y:2, pos:'right'}],
+    8: [{x:1, y:4, pos:'top'}, {x:3, y:0, pos:'bottom'}, {x:0, y:2, pos:'left'}, {x:5, y:4, pos:'right'}, {x:5, y:1, pos:'right'}],
+    9: [{x:1, y:4, pos:'top'}, {x:4, y:4, pos:'top'}, {x:4, y:0, pos:'bottom'}, {x:0, y:0, pos:'left'}, {x:5, y:3, pos:'right'}],
+    10: [{x:1, y:4, pos:'top'}, {x:4, y:4, pos:'top'}, {x:2, y:0, pos:'bottom'}, {x:0, y:2, pos:'left'}, {x:5, y:2, pos:'right'}]
+};
 
-            if (!rawText) {
-                errorMessage.innerText = "Please paste JSON data first.";
-                return;
-            }
+function formatNumber(num) {
+    if (isNaN(num) || num === null) return '???';
+    let absNum = Math.abs(num);
+    let sign = num < 0 ? '-' : '';
+    let formatted = '';
+    if (absNum >= 1e9) {
+        formatted = (absNum / 1e9).toFixed(1).replace(/\.?0+$/, '') + 'B';
+    } else if (absNum >= 1e6) {
+        formatted = (absNum / 1e6).toFixed(1).replace(/\.?0+$/, '') + 'M';
+    } else if (absNum >= 1e3) {
+        formatted = (absNum / 1e3).toFixed(1).replace(/\.?0+$/, '') + 'k';
+    } else {
+        formatted = absNum.toString();
+    }
+    return sign + formatted;
+}
 
-            try {
-                const parsedData = JSON.parse(rawText);
-                if (!parsedData.result || !parsedData.result.cells) {
-                    throw new Error("Missing 'result.cells'. Ensure you pasted the correct JSON structure.");
-                }
+function generateMap() {
+    const roomVal = document.getElementById('roomInput').value;
+    const mapVal = document.getElementById('mapInput').value;
+    const errorMessage = document.getElementById('error-message');
+    const gridLayout = document.getElementById('gridLayout');
+    
+    const statusCol1 = document.getElementById('statusCol1');
+    const statusCol2 = document.getElementById('statusCol2');
+    const statusCol3 = document.getElementById('statusCol3');
+    
+    errorMessage.textContent = '';
+    gridLayout.innerHTML = '';
+    statusCol1.innerHTML = '';
+    statusCol2.innerHTML = '';
+    statusCol3.innerHTML = '';
 
-                buildMap(parsedData.result.cells);
-            } catch (error) {
-                errorMessage.innerText = "Error: " + error.message;
+    let mapData = {};
+    let roomData = {};
+
+    try {
+        if (mapVal.trim()) mapData = JSON.parse(mapVal);
+    } catch (e) {
+        errorMessage.textContent = 'Invalid Map JSON: ' + e.message;
+        return;
+    }
+
+    try {
+        if (roomVal.trim()) roomData = JSON.parse(roomVal);
+    } catch (e) {
+        errorMessage.textContent = 'Invalid Room Guilds JSON: ' + e.message;
+        return;
+    }
+
+    const cells = mapData.result && mapData.result.cells ? mapData.result.cells : [];
+    const dimX = 6;
+
+    const cellMap = {};
+    const activePlaces = new Set();
+    cells.forEach(c => {
+        cellMap[`${c.x},${c.y}`] = c;
+        if (c.guild_room_place && c.power !== -1) {
+            activePlaces.add(c.guild_room_place);
+        }
+    });
+
+    const roomGuilds = [];
+    const seenGuildNames = new Set();
+    if (roomData.result && roomData.result.guilds) {
+        roomData.result.guilds.forEach((g, idx) => {
+            const gName = g.guild_name;
+            if (gName && !seenGuildNames.has(gName)) {
+                seenGuildNames.add(gName);
+                const roomPlace = g.in_room_place || (roomGuilds.length + 1);
+                const templateNum = ((roomPlace - 1) % 10) + 1;
+                roomGuilds.push({
+                    name: gName,
+                    position: roomPlace,
+                    entrances: entranceTemplates[templateNum] || []
+                });
             }
         });
+    }
 
-        function formatPower(power) {
-            if (power === -1) return "???";
-            if (power >= 1000000) return (power / 1000000).toFixed(1) + 'm';
-            if (power >= 1000) return (power / 1000).toFixed(1) + 'k';
-            return power;
+    function getGuildColorByName(name) {
+        if (name === 'Riot') return '#7f8c8d';
+        let found = roomGuilds.find(rg => rg.name === name);
+        if (found) {
+            return getGuildColor(found.position);
         }
+        return "#ffffff";
+    }
 
-        function getGuildColor(name) {
-            if (!name) return defaultColor;
-            const cleanName = name.trim();
-            if (!guildColors[cleanName]) {
-                guildColors[cleanName] = colorPalette[colorIndex % colorPalette.length];
-                colorIndex++;
-            }
-            return guildColors[cleanName];
+    // Populate Legend
+    roomGuilds.forEach((g, index) => {
+        const guildColor = getGuildColor(g.position);
+
+        const statusItem = document.createElement('div');
+        statusItem.className = 'legend-item';
+        const sSwatch = document.createElement('div');
+        sSwatch.className = 'color-swatch';
+        sSwatch.style.backgroundColor = guildColor;
+        statusItem.appendChild(sSwatch);
+        
+        const sLabel = document.createElement('span');
+        sLabel.textContent = `${g.name} (#${g.position})`;
+        statusItem.appendChild(sLabel);
+
+        if (index < 3) {
+            statusCol1.appendChild(statusItem);
+        } else if (index < 7) {
+            statusCol2.appendChild(statusItem);
+        } else {
+            statusCol3.appendChild(statusItem);
         }
+    });
 
-        function buildMap(cells) {
-            mapElement.innerHTML = ''; 
-            legendElement.innerHTML = '';
-            guildColors = {}; 
-            colorIndex = 0;
+    // Find off-map guilds (excluding 1, 3, 9, 10 as requested)
+    const excludedGuilds = [1, 3, 9, 10];
+    const offMapGuilds = [];
+    roomGuilds.forEach(g => {
+        if (!excludedGuilds.includes(g.position) && !activePlaces.has(g.position)) {
+            offMapGuilds.push(g);
+        }
+    });
 
-            const activePlaces = new Set();
-            const placeToName = {};
+    // --- 1. TOP PERIMETER ---
+    gridLayout.appendChild(document.createElement('div'));
+    for (let x = 0; x < dimX; x++) {
+        gridLayout.appendChild(document.createElement('div'));
+    }
+    gridLayout.appendChild(document.createElement('div'));
 
-            // Determine which guilds own a base tile on the map
-            cells.forEach(cell => {
-                if (cell.guild_room_place) {
-                    const cleanName = cell.guild_name ? cell.guild_name.trim() : `Guild ${cell.guild_room_place}`;
-                    placeToName[cell.guild_room_place] = cleanName;
-                    
-                    // Add to activePlaces to denote ownership (even if power is -1 or hidden)
-                    activePlaces.add(cell.guild_room_place);
-                }
+    // --- 2. MIDDLE ROWS ---
+    const boardRows = [
+        { letter: 'A', jsonY: 4 },
+        { letter: 'B', jsonY: 3 },
+        { letter: 'C', jsonY: 2 },
+        { letter: 'D', jsonY: 1 },
+        { letter: 'E', jsonY: 0 }
+    ];
+
+    boardRows.forEach(row => {
+        gridLayout.appendChild(document.createElement('div')); // Left side spacer
+
+        for (let x = 0; x < dimX; x++) {
+            const cellDiv = document.createElement('div');
+            cellDiv.className = 'cell';
+            
+            const cellData = cellMap[`${x},${row.jsonY}`];
+            if (cellData) {
+                let cellColor = '#36393f';
+                roomGuilds.forEach(rg => {
+                    if (rg.name === cellData.guild_name) {
+                        cellColor = getGuildColor(rg.position);
+                    }
+                });
+                cellDiv.style.backgroundColor = cellColor;
                 
-                // Ensure attackers are mapped to colors for the legend
-                if (cell.forces) {
-                    cell.forces.forEach(f => {
-                        let fName = f.guild_id === -123456 ? 'Riot' : f.guild_name;
-                        if (fName && fName !== 'Riot') getGuildColor(fName.trim());
+                let basePower = cellData.power;
+                if (basePower === -1) basePower = 0;
+
+                let displayedPower = basePower;
+                let filteredForces = [];
+
+                if (cellData.forces) {
+                    cellData.forces.forEach(f => {
+                        const gName = (f.guild_id === -123456 || !f.guild_name) ? 'Riot' : f.guild_name;
+                        let fPower = f.hidden ? 0 : f.power;
+                        if (fPower === -1) fPower = 0;
+
+                        if (cellData.guild_name && gName === cellData.guild_name) {
+                            displayedPower += fPower;
+                        } else {
+                            filteredForces.push({ ...f, resolvedName: gName, resolvedPower: fPower });
+                        }
                     });
+                }
+
+                let maxAttackerPower = -1;
+                let topAttackerName = null;
+                let topAttackerColor = '#ffffff';
+
+                filteredForces.forEach(f => {
+                    if (f.resolvedPower > maxAttackerPower) {
+                        maxAttackerPower = f.resolvedPower;
+                        topAttackerName = f.resolvedName;
+                        topAttackerColor = getGuildColorByName(f.resolvedName);
+                    }
+                });
+
+                let finalPowerVal = displayedPower;
+                let netColor = '#ffffff';
+
+                if (maxAttackerPower !== -1) {
+                    finalPowerVal = displayedPower - maxAttackerPower;
+                    if (finalPowerVal < 0) {
+                        netColor = topAttackerColor;
+                    }
+                }
+
+                let finalPowerText = (basePower === 0 && displayedPower === 0) ? '???' : formatNumber(finalPowerVal);
+
+                let html = `<div class="cell-power" style="color: ${netColor};">${finalPowerText}</div>`;
+                
+                if (filteredForces.length > 0) {
+                    filteredForces.forEach(f => {
+                        const isEnemy = f.guild_id !== cellData.guild_id;
+                        const isWinning = (f.resolvedPower === maxAttackerPower && maxAttackerPower !== 0 && isEnemy);
+
+                        let attackerColor = getGuildColorByName(f.resolvedName);
+                        let formattedForcePower = formatNumber(f.resolvedPower);
+                        
+                        let isRiotForce = (f.guild_id === -123456);
+                        let forceDisplayLabel = isRiotForce ? `Riot ${formattedForcePower}` : formattedForcePower;
+
+                        if (isWinning) {
+                            html += `<div class="force-row winning-enemy"><span class="force-color-square" style="background-color: ${attackerColor};"></span><span class="force-power" style="color: ${attackerColor};"><b>${forceDisplayLabel}</b></span></div>`;
+                        } else {
+                            html += `<div class="force-row"><span class="force-color-square" style="background-color: ${attackerColor};"></span><span class="force-power" style="color: ${attackerColor};">${forceDisplayLabel}</span></div>`;
+                        }
+                    });
+                }
+                cellDiv.innerHTML = html;
+            } else {
+                cellDiv.innerHTML = `<div class="cell-power">???</div>`;
+                cellDiv.style.backgroundColor = '#2f3136';
+            }
+
+            // Check for off-map entrances on this specific cell coordinate
+            const cellEntrances = { top: [], bottom: [], left: [], right: [] };
+            offMapGuilds.forEach(g => {
+                g.entrances.forEach(ent => {
+                    if (ent.x === x && ent.y === row.jsonY) {
+                        cellEntrances[ent.pos].push(getGuildColor(g.position));
+                    }
+                });
+            });
+
+            ['top', 'bottom', 'left', 'right'].forEach(pos => {
+                if (cellEntrances[pos].length > 0) {
+                    const container = document.createElement('div');
+                    container.className = `entrance-container entrance-${pos}`;
+                    cellEntrances[pos].forEach(color => {
+                        const dot = document.createElement('div');
+                        dot.className = 'entrance-dot';
+                        dot.style.backgroundColor = color;
+                        container.appendChild(dot);
+                    });
+                    cellDiv.appendChild(container);
                 }
             });
 
-            // Find missing/wiped guilds that DO NOT own any tiles.
-            // Exclude guilds 1, 3, 9, and 10 from displaying entrance markers.
-            const excludedGuilds = [1, 3, 9, 10];
-            const offMapGuilds = [];
-            for (let i = 1; i <= 10; i++) {
-                if (excludedGuilds.includes(i)) continue;
-
-                if (!activePlaces.has(i)) {
-                    const name = placeToName[i] || `Guild ${i}`;
-                    offMapGuilds.push({
-                        place: i,
-                        name: name,
-                        color: getGuildColor(name)
-                    });
-                }
-            }
-
-            // Top-left empty corner for header formatting
-            mapElement.appendChild(document.createElement('div')); 
-
-            // Build Header Columns (1-6)
-            for (let x = 0; x < 6; x++) {
-                const header = document.createElement('div');
-                header.className = 'header-col';
-                header.innerText = cols[x];
-                mapElement.appendChild(header);
-            }
-
-            // Grid rendering (A-E, 1-6)
-            for (let y = 4; y >= 0; y--) {
-                
-                // Build Header Rows (A-E)
-                const header = document.createElement('div');
-                header.className = 'header-row';
-                header.innerText = rows[4 - y];
-                mapElement.appendChild(header);
-
-                for (let x = 0; x < 6; x++) {
-                    const cellData = cells.find(c => c.x === x && c.y === y);
-                    const cellDiv = document.createElement('div');
-                    cellDiv.className = 'cell';
-
-                    if (cellData) {
-                        const ownerColor = getGuildColor(cellData.guild_name);
-                        cellDiv.style.backgroundColor = ownerColor;
-
-                        // Power Output
-                        const powerMain = document.createElement('div');
-                        powerMain.className = 'power-main';
-                        powerMain.innerText = formatPower(cellData.power);
-                        cellDiv.appendChild(powerMain);
-
-                        // Forces List Output
-                        const forcesList = document.createElement('div');
-                        forcesList.className = 'forces-list';
-
-                        if (cellData.forces && cellData.forces.length > 0) {
-                            cellData.forces.forEach(force => {
-                                let isRiot = force.guild_id === -123456;
-                                let forceName = isRiot ? 'Riot' : force.guild_name;
-                                let forcePower = formatPower(force.power);
-                                let forceColor = isRiot ? '#ff4444' : getGuildColor(forceName);
-
-                                if (forcePower !== "???" && !force.hidden) {
-                                    const forceItem = document.createElement('div');
-                                    forceItem.className = 'force-item';
-                                    
-                                    if (isRiot) {
-                                        forceItem.innerHTML = `<div class="force-circle" style="background-color: ${forceColor};"></div>Riot ${forcePower}`;
-                                    } else {
-                                        forceItem.innerHTML = `<div class="force-circle" style="background-color: ${forceColor};"></div>${forcePower}`;
-                                    }
-                                    
-                                    forcesList.appendChild(forceItem);
-                                }
-                            });
-                        }
-                        cellDiv.appendChild(forcesList);
-                    }
-
-                    // Look for entrances from off-map guilds for this specific coordinate
-                    const cellEntrances = { top: [], bottom: [], left: [], right: [] };
-                    offMapGuilds.forEach(wg => {
-                        const places = entrancesMap[wg.place] || [];
-                        places.forEach(p => {
-                            if (p.x === x && p.y === y) {
-                                cellEntrances[p.pos].push(wg.color);
-                            }
-                        });
-                    });
-
-                    // Render obvious entry dots completely outside the edges of the grid
-                    ['top', 'bottom', 'left', 'right'].forEach(pos => {
-                        if (cellEntrances[pos].length > 0) {
-                            const container = document.createElement('div');
-                            container.className = `entrance-container entrance-${pos}`;
-                            
-                            cellEntrances[pos].forEach(color => {
-                                const dot = document.createElement('div');
-                                dot.className = 'entrance-dot';
-                                dot.style.backgroundColor = color;
-                                container.appendChild(dot);
-                            });
-                            cellDiv.appendChild(container);
-                        }
-                    });
-
-                    mapElement.appendChild(cellDiv);
-                }
-            }
-
-            // Build Global Legend
-            for (const [name, color] of Object.entries(guildColors)) {
-                const legendItem = document.createElement('div');
-                legendItem.className = 'legend-item';
-                legendItem.innerHTML = `<div class="legend-box" style="background-color: ${color};"></div> ${name}`;
-                legendElement.appendChild(legendItem);
-            }
+            gridLayout.appendChild(cellDiv);
         }
-    </script>
+
+        gridLayout.appendChild(document.createElement('div')); // Right side spacer
+    });
+
+    // --- 3. BOTTOM PERIMETER ---
+    gridLayout.appendChild(document.createElement('div'));
+    for (let x = 0; x < dimX; x++) {
+        gridLayout.appendChild(document.createElement('div'));
+    }
+    gridLayout.appendChild(document.createElement('div'));
+}
+
+function downloadPage() {
+    const htmlContent = document.documentElement.outerHTML;
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'guild_war_template_map.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+</script>
+
 </body>
 </html>
-Add guild war map generator page
