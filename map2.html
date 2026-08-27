@@ -426,18 +426,6 @@ function generateMap() {
     gridLayout.appendChild(document.createElement('div'));
 }
 
-function downloadPage() {
-    const htmlContent = document.documentElement.outerHTML;
-    const blob = new Blob([htmlContent], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'guild_war_template_map.html';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
 </script>
 
 </body>
