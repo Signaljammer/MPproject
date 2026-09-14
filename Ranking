@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guild Ranking Comparison</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        .input-section {
+            margin-bottom: 20px;
+        }
+        .dataset-box {
+            background: #f9f9fc;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: monospace;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .btn-remove {
+            background-color: #e74c3c;
+        }
+        .btn-remove:hover {
+            background-color: #c0392b;
+        }
+        .error {
+            color: #e74c3c;
+            margin-top: 5px;
+            font-weight: bold;
+        }
+        .table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            font-size: 14px;
+            vertical-align: middle;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .number-col {
+            text-align: right;
+        }
+        .sub-value {
+            display: block;
+            font-size: 12px;
+            margin-top: 3px;
+        }
+        .arrow-up {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .arrow-down {
+            color: #c0392b;
+            font-weight: bold;
+        }
+        .map-changed {
+            background-color: #fff3cd !important;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Guild Ranking Comparison</h1>
+    
+    <div class="input-section">
+        <div id="datasetsContainer">
+            <!-- Initial Dataset 1 -->
+            <div class="dataset-box" data-id="1">
+                <label><strong>Ranking JSON #1</strong></label>
+                <br><br>
+                <textarea class="jsonInput" placeholder="Paste JSON here..."></textarea>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button onclick="addDatasetBox()">+ Add Another JSON</button>
+            <button onclick="processData()" style="background-color: #27ae60;">Generate Rankings</button>
+        </div>
+        <div id="errorMsg" class="error"></div>
+    </div>
+
+    <div class="table-container">
+        <table id="rankingsTable">
+            <thead>
+                <tr>
+                    <th>Which Map</th>
+                    <th>Guild Name</th>
+                    <th class="number-col">Number of Members</th>
+                    <th class="number-col">Current Guild Troop</th>
+                    <th class="number-col">Average Next Map</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #777;">No data processed yet. Add JSON and click "Generate Rankings".</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    let datasetCounter = 1;
+
+    function addDatasetBox() {
+        datasetCounter++;
+        const container = document.getElementById('datasetsContainer');
+        const box = document.createElement('div');
+        box.className = 'dataset-box';
+        box.setAttribute('data-id', datasetCounter);
+        box.innerHTML = `
+            <label><strong>Ranking JSON #${datasetCounter}</strong></label>
+            <button class="btn-remove" style="float: right; padding: 5px 10px; font-size: 12px;" onclick="removeDatasetBox(this)">Remove</button>
+            <br><br>
+            <textarea class="jsonInput" placeholder="Paste comparison JSON here..."></textarea>
+        `;
+        container.appendChild(box);
+    }
+
+    function removeDatasetBox(button) {
+        button.parentElement.remove();
+    }
+
+    function parseAndComputeGuilds(jsonString) {
+        const data = JSON.parse(jsonString);
+        const guildsList = data?.result?.guilds;
+        if (!Array.isArray(guildsList)) throw new Error('Missing "result.guilds" array.');
+
+        const guilds = guildsList.map(guild => {
+            const currentTroop = guild.summary_power || 0;
+            const prev1 = (guild.prev_summary_power && guild.prev_summary_power[0]) || 0;
+            const prev2 = (guild.prev_summary_power && guild.prev_summary_power[1]) || 0;
+            const averageNextMap = (currentTroop + prev1 + prev2) / 3;
+
+            return {
+                id: guild.id,
+                name: guild.name || 'Unknown',
+                membersCount: guild.members_count || 0,
+                currentTroop: currentTroop,
+                averageNextMap: averageNextMap
+            };
+        });
+
+        // Sort high to low by Average Next Map
+        guilds.sort((a, b) => b.averageNextMap - a.averageNextMap);
+
+        // Assign maps (1-10 -> Map 1, 11-20 -> Map 2, etc.)
+        guilds.forEach((guild, index) => {
+            const mapNumber = Math.floor(index / 10) + 1;
+            guild.mapNumber = mapNumber;
+            guild.mapName = `Map ${mapNumber}`;
+        });
+
+        return guilds;
+    }
+
+    function processData() {
+        const errorDiv = document.getElementById('errorMsg');
+        const tableBody = document.getElementById('tableBody');
+        errorDiv.textContent = '';
+        tableBody.innerHTML = '';
+
+        const textareas = document.querySelectorAll('.jsonInput');
+        const datasets = [];
+
+        try {
+            for (let i = 0; i < textareas.length; i++) {
+                const val = textareas[i].value.trim();
+                if (!val) continue;
+                const computed = parseAndComputeGuilds(val);
+                datasets.push(computed);
+            }
+        } catch (e) {
+            errorDiv.textContent = `JSON Error: ${e.message}`;
+            return;
+        }
+
+        if (datasets.length === 0) {
+            errorDiv.textContent = 'Please enter at least one JSON dataset.';
+            return;
+        }
+
+        const primaryDataset = datasets[0]; // Ranking JSON #1
+        const comparisonDataset = datasets[1] || null; // Ranking JSON #2 (if provided)
+
+        // Map secondary dataset by name for quick lookup
+        const comparisonMap = new Map();
+        if (comparisonDataset) {
+            comparisonDataset.forEach(g => {
+                comparisonMap.set(g.name, g);
+            });
+        }
+
+        primaryDataset.forEach(g => {
+            const row = document.createElement('tr');
+            
+            let mapHtml = g.mapName;
+            let troopHtml = g.currentTroop.toLocaleString();
+            let avgHtml = Math.round(g.averageNextMap).toLocaleString();
+
+            if (comparisonDataset) {
+                const compMatch = comparisonMap.get(g.name);
+                if (compMatch) {
+                    // Highlight row if map changed
+                    if (compMatch.mapNumber !== g.mapNumber) {
+                        row.classList.add('map-changed');
+                        mapHtml += `<span class="sub-value" style="color: #d35400;">New: ${compMatch.mapName}</span>`;
+                    }
+
+                    // Troop comparison (JSON #1 value on top, JSON #2 underneath)
+                    const troopDiff = compMatch.currentTroop - g.currentTroop; // Comparing new vs old
+                    if (compMatch.currentTroop > g.currentTroop) {
+                        troopHtml += `<span class="sub-value arrow-up">${compMatch.currentTroop.toLocaleString()} ▲</span>`;
+                    } else if (compMatch.currentTroop < g.currentTroop) {
+                        troopHtml += `<span class="sub-value arrow-down">${compMatch.currentTroop.toLocaleString()} ▼</span>`;
+                    } else {
+                        troopHtml += `<span class="sub-value" style="color: #7f8c8d;">${compMatch.currentTroop.toLocaleString()} =</span>`;
+                    }
+
+                    // Average Next Map comparison
+                    const compAvgRounded = Math.round(compMatch.averageNextMap);
+                    const origAvgRounded = Math.round(g.averageNextMap);
+                    if (compAvgRounded > origAvgRounded) {
+                        avgHtml += `<span class="sub-value arrow-up">${compAvgRounded.toLocaleString()} ▲</span>`;
+                    } else if (compAvgRounded < origAvgRounded) {
+                        avgHtml += `<span class="sub-value arrow-down">${compAvgRounded.toLocaleString()} ▼</span>`;
+                    } else {
+                        avgHtml += `<span class="sub-value" style="color: #7f8c8d;">${compAvgRounded.toLocaleString()} =</span>`;
+                    }
+                }
+            }
+
+            row.innerHTML = `
+                <td>${mapHtml}</td>
+                <td><strong>${g.name}</strong></td>
+                <td class="number-col">${g.membersCount.toLocaleString()}</td>
+                <td class="number-col">${troopHtml}</td>
+                <td class="number-col">${avgHtml}</td>
+            `;
+            tableBody.appendChild(row);
+        });
+    }
+</script>
+
+</body>
+</html>
