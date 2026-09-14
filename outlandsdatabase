@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Outlands Monster Database</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-color: #38bdf8;
+            --accent-hover: #0ea5e9;
+            --border-color: #334155;
+            --table-hover: #273548;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            color: var(--accent-color);
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: center;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            max-width: 600px;
+            padding: 14px 20px;
+            font-size: 16px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-color);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+        }
+
+        .table-container {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            overflow-x: auto;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        th, td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: rgba(15, 23, 42, 0.6);
+            color: var(--accent-color);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.05em;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background-color: var(--table-hover);
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        .faction-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            background: #334155;
+            color: #cbd5e1;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Outlands Monster Database</h1>
+        <p class="subtitle">Search levels, locations, and elite percentages for monsters extracted from game documentation.</p>
+    </header>
+
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Search by monster name, location, or tier..." oninput="filterTable()">
+    </div>
+
+    <div class="table-container">
+        <table id="monsterTable">
+            <thead>
+                <tr>
+                    <th>Monster Name</th>
+                    <th>Location</th>
+                    <th>Recommended / Difficulty Tier</th>
+                    <th>Details / Notes</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <!-- Data will be populated via JavaScript -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const monsterData = [
+        { name: "Fleshless knight", location: "Monster 5", tier: "52 4/emp", details: "World: 4, Boss: 5, Turn: 3" },
+        { name: "Fleshless knight", location: "Monster 5", tier: "55 5/god", details: "XP: 135600, World: 4, Boss: 5, Turn: 3" },
+        { name: "Ghost warrior", location: "Guardian 4", tier: "4/emp", details: "XP: 226392, World: 3, Boss: 4, Turn: 3" },
+        { name: "Ghost warrior", location: "revenge 5", tier: "40 4/emp", details: "XP: 120000, World: 5, Boss: 5, Turn: 1" },
+        { name: "Witch", location: "Dead swamp 2", tier: "55 5/god", details: "XP: 79800, World: 4, Boss: 2, Turn: 1" },
+        { name: "Witch", location: "Dark night 4", tier: "60 5/god", details: "XP: 141000, World: 5, Boss: 4, Turn: 1" },
+        { name: "Witch", location: "Hidden cave 4", tier: "55 5/god", details: "XP: 109800, World: 6, Boss: darkwood defender IvI IV, ghost warior 4, Turn: 3" },
+        { name: "Witch", location: "On the orher side 1.", tier: "79 5/god", details: "XP: 140400, World: 1, Boss: 1, Turn: 2+3" },
+        { name: "Witch", location: "Guardian 1", tier: "55 5/god", details: "XP: 95400, World: 3, Boss: 1, Turn: 3" },
+        { name: "Witch", location: "Guardian 4", tier: "40 4/emp", details: "XP: 226392, World: 3, Boss: 4, Turn: 4" },
+        { name: "Witch", location: "Eolanda 5", tier: "55 3/champ", details: "XP: 128800, World: 3, Boss: 5, Turn: 3" },
+        { name: "Witch", location: "Eolanda 5", tier: "40 4/emp", details: "World: 3, Boss: 5, Turn: 3" },
+        { name: "Witch", location: "Assasin 5", tier: "15 2/hero", details: "XP: 84400, World: 5, Boss: 5, Turn: 3" },
+        { name: "Witch", location: "Assasin 5", tier: "25 2/hero", details: "XP: 167133, World: 5, Boss: black scorpion IvI IV, orc berserker IvI III 5, Turn: 3" },
+        { name: "Witch", location: "potion 3", tier: "25 3/champ", details: "XP: 125925, World: 4, Boss: 3, Turn: -" },
+        { name: "Swamp Witch", location: "Guardian 4", tier: "72 4/emp", details: "XP: 226392, World: 3, Boss: 4, Turn: 4" },
+        { name: "Swamp Witch", location: "Guardian 4", tier: "73 5/god", details: "XP: 274200, World: 3, Boss: 4, Turn: 4" },
+        { name: "Swamp Witch", location: "Hero crypt 4", tier: "60 2/hero", details: "XP: 77800, World: 3, Boss: 4, Turn: 3" },
+        { name: "Cursed Witch", location: "Dark mirror 3", tier: "50 3/champ", details: "XP: 101200, World: 4, Boss: 3, Turn: 1" },
+        { name: "Cursed Witch", location: "Dark mirror 3", tier: "50 4/emp", details: "XP: 224000, World: 4, Boss: 3, Turn: 1" },
+        { name: "Autumn Monster G3", location: "mortal rage 5", tier: "35 3/champ", details: "XP: 158694, World: 3, Boss: 5" },
+        { name: "Autumn Monster G3", location: "mortal rage 5", tier: "40 4/emp", details: "XP: 198500, World: 3, Boss: 5" },
+        { name: "Dead Gorila", location: "On the orher side 1", tier: "55 5/boss", details: "XP: 140400, World: 1, Boss: 1" },
+        { name: "Dead Gorila", location: "Wild place 5", tier: "73 5/boss", details: "XP: 181200, World: 5, Boss: 5, Turn: 3" },
+        { name: "Dead Gorila", location: "Dark mirror 5", tier: "55 5/boss", details: "XP: 117200, World: 4, Boss: 5, Turn: 3" },
+        { name: "Dead Gorila", location: "Salvation of souls 3", tier: "50 3/champ", details: "XP: 100572, World: 5, Boss: 3, Turn: 2" },
+        { name: "Dead Gorila", location: "potion 3", tier: "25 3/champ", details: "XP: 125925, World: 4, Boss: 3, Turn: 1" },
+        { name: "Primate", location: "Turn 1", tier: "40 4/emp", details: "XP: 179916, World: 2, Boss: 1 ghost warior, Turn: 2" },
+        { name: "Primate", location: "Turn 1", tier: "84 4/emp", details: "World: 2, Boss: 1 ghost warior, Turn: 2" },
+        { name: "Primate", location: "Turn 1", tier: "96 4/emp", details: "World: 3, Boss: ghost warior 1" },
+        { name: "Primate", location: "Mortal Rage 2", tier: "25 2/hero", details: "XP: 87156, World: 3, Boss: 2, Turn: 2" },
+        { name: "Primate", location: "Mortal Rage 2", tier: "55 3/champ", details: "XP: 87156, World: -, Boss: -, Turn: 2" },
+        { name: "Primate", location: "assassin 2", tier: ">40", details: "World: 4, Boss: 2, Turn: 4" },
+        { name: "Necromancer", location: "obsidian forest 1", tier: "45 3/champ", details: "XP: 129156, World: 2, Boss: 1" },
+        { name: "Necromancer", location: "obsidian forest 1", tier: "25 2/hero", details: "XP: 64512, World: 2, Boss: 1" },
+        { name: "Necromancer", location: "assassin 2", tier: "25 2/hero", details: "XP: 195200, World: 5, Boss: 2, Turn: 1+3" },
+        { name: "Necromancer", location: "Guardian 1", tier: "55 5/god", details: "XP: 95400, World: 3, Boss: 1, Turn: 1" },
+        { name: "Necromancer", location: "salvation of souls 5", tier: ">35 3/champ", details: "XP: 188400, World: 5, Boss: 5, Turn: 1" },
+        { name: "Necromancer", location: "light breeze 1", tier: "44 4/emp", details: "XP: 98750, World: 2, Boss: 1, Turn: 2" },
+        { name: "Immortan Nosferatu", location: "obsidian forest 3", tier: ">60", details: "World: 5, Boss: 3, Turn: 2" },
+        { name: "Cursed Leach", location: "obsidian forest 3", tier: "60", details: "World: 2, Boss: 3, Turn: -" },
+        { name: "Blood order adept", location: "obsidian forest 3", tier: "25", details: "XP: 157600, World: 3, Boss: 3, Turn: 1" },
+        { name: "vampire G6", location: "obsidian forest 3", tier: "25 3/champ", details: "World: 1, Boss: 1" },
+        { name: "Dark mage disciple", location: "obsidian forest 2", tier: "40", details: "XP: 195200, World: 3, Boss: 3" },
+        { name: "Toxic sniper chaos G3", location: "potion 3", tier: "25 3/champ", details: "XP: 168000, World: 4, Boss: 1, Turn: 4" },
+        { name: "ORDER Warior of light", location: "Dark mirror 5", tier: "50", details: "XP: 117200, World: 4, Boss: 5, Turn: 5" },
+        { name: "ORDER Warior of light", location: "Dark mirror 5", tier: "3/champ 40", details: "World: 4, Boss: 5, Turn: 5" },
+        { name: "ORDER Warior of light", location: "Ancient rest 2", tier: "40 3/champ", details: "XP: 188500, World: 1, Boss: 2, Turn: 2" },
+        { name: "ORDER Warior of light", location: "traitor 1", tier: "55 5/boss", details: "XP: 69000, World: 3, Boss: 1, Turn: 3" },
+        { name: "ORDER Warior of light", location: "traitor 2", tier: "55 5/boss", details: "XP: 55200, World: 3, Boss: 2, Turn: 1" },
+        { name: "ORDER Warior of light", location: "obsidian forest 1", tier: "45 2/hero", details: "XP: 64512, World: 2, Boss: 1" },
+        { name: "ORDER Warior of light", location: "ruins 1", tier: "25 3/champ", details: "XP: 154785, World: 4, Boss: 1, Turn: 2" },
+        { name: "ORDER Warior of light", location: "abducted 5", tier: "40 4/emp", details: "XP: 123000, World: 5, Boss: 5" },
+        { name: "white knight", location: "canyon of demise 5", tier: "55 3/champ", details: "World: 1, Boss: 5, Turn: 3" },
+        { name: "bright swordsman", location: "light breeze 3", tier: "25 3/champ", details: "XP: 140400, World: 3, Boss: 3, Turn: 4" },
+        { name: "bright swordsman", location: "light breeze 3 T125", tier: "40 4/emp", details: "XP: 171500, World: 3, Boss: 3, Turn: 4" },
+        { name: "Lighting mage addept", location: "Dark mirror 5", tier: "45", details: "XP: 117200, World: 4, Boss: 5" },
+        { name: "Lighting mage addept", location: "mortal rage 4", tier: "15 2/hero", details: "XP: 123900, World: 4, Boss: 4, Turn: 1" },
+        { name: "Lighting mage addept", location: "mortal rage 4", tier: "25 3/champ", details: "XP: 123900, World: 4, Boss: 4, Turn: 1" },
+        { name: "Lighting mage addept", location: "mortal rage 4", tier: "40 4/emp", details: "XP: 155000, World: 4, Boss: 4, Turn: 1" },
+        { name: "Water mage disciple", location: "Dark mirror 5", tier: "25 3/champ", details: "XP: 117200, World: 4, Boss: 5" },
+        { name: "Red mage", location: "light breeze 2", tier: "100", details: "World: 2, Boss: 2" },
+        { name: "prince of thieves", location: "ruins 3", tier: "25 3/champ", details: "World: -, Boss: -, Turn: 1" },
+        { name: "Prince of Thieves G3", location: "potion 5", tier: "15 2/hero", details: "XP: 93200, World: 4, Boss: 5, Turn: 2" },
+        { name: "skilled thief G2", location: "potion 5, ruins 3", tier: "25 3/champ, 15 2/hero", details: "XP: 186400, World: 4, Boss: 5, Turn: 2" },
+        { name: "Church servant", location: "eolanda 1", tier: "79 5/boss", details: "XP: 100200, World: 3, Boss: 1, Turn: 3" },
+        { name: "Church servant", location: "monster 1", tier: "55 5/boss", details: "World: 4, Boss: 1" },
+        { name: "Church servant", location: "light breeze 2", tier: "25 3/champ", details: "XP: 115600, World: 2, Boss: 2, Turn: 3" },
+        { name: "Elite archer order G3", location: "Hero crypt 4", tier: "25 3/champ", details: "World: 3, Boss: 4, Turn: 1" },
+        { name: "fencing master G2", location: "monster 5", tier: "55 5/boss", details: "XP: 145200, World: 5, Boss: 5, Turn: 2" },
+        { name: "fencing master G2", location: "wild place 2", tier: "55 5/boss", details: "XP: 119400, World: 2, Boss: 2, Turn: 2" },
+        { name: "fencing master G2", location: "mortal rage 5", tier: "25 3/champ", details: "XP: 158694, World: 5, Boss: 5, Turn: 1" },
+        { name: "Hunter G1 ORDER", location: "wild place 1", tier: "5 5/boss", details: "XP: 63600, World: 2, Boss: 1, Turn: 1" },
+        { name: "Hunter G1 ORDER", location: "wild place 2", tier: "5 5/boss", details: "XP: 119400, World: 2, Boss: 2, Turn: 1+2" },
+        { name: "Hunter G1 ORDER", location: "hunt 2", tier: "55 5/boss", details: "World: 2, Boss: 1, Turn: 1" },
+        { name: "Hunter G1 ORDER", location: "traitor 4", tier: "5 5/boss", details: "XP: 57600, World: 5, Boss: 3, Turn: 1" },
+        { name: "Hunter G1 ORDER", location: "eolanda 3", tier: "10 4/emp", details: "XP: 58000, World: 3, Boss: 3, Turn: 3" },
+        { name: "Hunter G1 ORDER", location: "dark mirror 1", tier: "10 4/emp", details: "XP: 72000, World: 1, Boss: 4, Turn: 1" },
+        { name: "wood nymph (healer)", location: "canyon of demise 4", tier: "15 2/hero / 25 3/champ", details: "XP: 84800 - 163200, World: 4" },
+        { name: "young gorilla G2", location: "mortal rage 1", tier: "25 3/champ / 10 4/emp", details: "XP: 137600 - 294000, World: 1" },
+        { name: "Lion", location: "canyon of demise 5", tier: "30 3/champ", details: "XP: 124800, World: 5, Boss: 5, Turn: 2" },
+        { name: "Black Scorp", location: "assassin 5", tier: "85", details: "World: 5, Boss: 5, EVO from swarms" },
+        { name: "Amber scorpion G3", location: "wild palace 5", tier: "73 5/boss", details: "XP: 180600, World: 5, Boss: 2, Turn: 3" },
+        { name: "beetle", location: "abducted 5", tier: "40 4/emp", details: "XP: 123000, World: 5, Boss: 1, Turn: 3" },
+        { name: "triton", location: "potion 5", tier: "95", details: "XP: 176800 - 233000, World: 5, Boss: 4, Turn: 3" },
+        { name: "medusa", location: "summon only", tier: "-", details: "EVO from hunters (order) and hornets" },
+        { name: "buzzing wasp G1", location: "potion 1, 2", tier: "25 3/champ / 40 4/emp", details: "XP: 90000 - 196500, World: 1" },
+        { name: "killer wasp G2", location: "megus rest 2, potion 1", tier: "25 3/champ", details: "XP: 120000 - 157600, World: 2" },
+        { name: "bloodthristy wasp G3", location: "wild place 5", tier: "55 5/boss", details: "XP: 180600, World: 5, Boss: 2, Turn: 1" },
+        { name: "exclusive Swarm G3", location: "salvation of souls 5", tier: "25 3/champ / 40 4/emp", details: "XP: 188000 - 236000, World: 5" },
+        { name: "swarm g2", location: "potion 2", tier: "25 3/champ", details: "XP: 100000, World: 2, EVO to black scorpion" },
+        { name: "big venomous hornet", location: "wild palace 5", tier: "73 5/boss", details: "XP: 180600, World: 5, Boss: 2, EVO to amber scorpion" },
+        { name: "venomous hornet G2", location: "potion 1", tier: "25 3/champ", details: "XP: 157600, World: 1" },
+        { name: "crazy cactus", location: "canyon of demise 4", tier: "25 3/champ", details: "World: 4, Boss: 1" },
+        { name: "living tree", location: "canyon of demise 4", tier: "25 3/champ", details: "World: 4, Boss: 1" },
+        { name: "big entangling spider", location: "canyon of demise 4", tier: "25 3/champ", details: "World: 4, Boss: 1" },
+        { name: "master of the wild hunt", location: "canyon of demise 4", tier: "25 3/champ", details: "World: 4, Boss: 3" },
+        { name: "wild boar", location: "wild place 2", tier: "55 5/boss", details: "XP: 119400, World: 1, Boss: 2" },
+        { name: "giant boar", location: "hidden cave 1", tier: "55 5/boss", details: "XP: 92400, World: 1, Boss: 5, Turn: 1" },
+        { name: "forest archer", location: "eolanda 2", tier: "76 5/boss", details: "XP: 76000, World: 2, Boss: 3, Turn: 1" },
+        { name: "red cap G1", location: "traitor 1, 2, hidden cave 2", tier: "55 5/boss", details: "XP: 69000 - 141600, World: 1-2" },
+        { name: "walking redcap G2", location: "assasin 1", tier: "25 3/champ", details: "XP: 222800, World: 1, Boss: 5" },
+        { name: "glowing mushroom G1", location: "abducted 2", tier: "40 4/emp / 55 5/boss", details: "XP: 102000 - 115200, World: 2" },
+        { name: "phospohurs musroom G2", location: "merguss rest 4", tier: "15 2/hero / 25 3/champ", details: "XP: 55464 - 109600, World: 4" },
+        { name: "Orc Shaman", location: "obsidian forest 3", tier: "15 2/hero / 25 3/champ", details: "XP: 111200 - 220400, World: 3, Boss: 5" },
+        { name: "Orc Beserker", location: "potion 5", tier: "33", details: "XP: 176800, World: 5, Boss: 4" },
+        { name: "nature tree", location: "potion 5", tier: "25 3/champ", details: "XP: 176800, World: 5, Boss: 4" },
+        { name: "Canibal werewolf", location: "eolanda 1", tier: "55 5/boss", details: "XP: 100200, World: 1, Boss: 3, Turn: 1" },
+        { name: "dark ticket wolf", location: "light breeze 1", tier: "25 3/champ / 40 4/emp", details: "XP: 80739 - 98750, World: 1" },
+        { name: "young wolf", location: "wild place 2, 4", tier: "55 5/boss", details: "XP: 119400 - 127200, World: 2-4" }
+    ];
+
+    function renderTable(data) {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+
+        if (data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="no-results">No monsters found matching your search.</td></tr>`;
+            return;
+        }
+
+        data.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><strong>${item.name}</strong></td>
+                <td>${item.location}</td>
+                <td><span class="faction-tag">${item.tier}</span></td>
+                <td>${item.details}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    function filterTable() {
+        const query = document.getElementById('searchInput').value.toLowerCase().trim();
+        const filtered = monsterData.filter(m => 
+            m.name.toLowerCase().includes(query) ||
+            m.location.toLowerCase().includes(query) ||
+            m.tier.toLowerCase().includes(query) ||
+            m.details.toLowerCase().includes(query)
+        );
+        renderTable(filtered);
+    }
+
+    // Initial render
+    renderTable(monsterData);
+</script>
+
+</body>
+</html>
