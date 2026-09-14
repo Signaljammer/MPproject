@@ -239,52 +239,55 @@
             return;
         }
 
-        const primaryDataset = datasets[0]; // Ranking JSON #1
-        const comparisonDataset = datasets[1] || null; // Ranking JSON #2 (if provided)
+        const primaryDataset = datasets[0]; // Ranking JSON #1 (Base for table structure/ordering if only 1, or base values)
+        const newestDataset = datasets[datasets.length - 1]; // Newest JSON determines the sorting order and map assignments
 
-        // Map secondary dataset by name for quick lookup
-        const comparisonMap = new Map();
-        if (comparisonDataset) {
-            comparisonDataset.forEach(g => {
-                comparisonMap.set(g.name, g);
-            });
-        }
-
+        // Map newest dataset by guild name for sorting and lookup
+        // We will display guilds based on the newest dataset's sort order
+        const primaryMap = new Map();
         primaryDataset.forEach(g => {
+            primaryMap.set(g.name, g);
+        });
+
+        newestDataset.forEach(g => {
             const row = document.createElement('tr');
             
             let mapHtml = g.mapName;
+            let membersHtml = g.membersCount.toLocaleString();
             let troopHtml = g.currentTroop.toLocaleString();
             let avgHtml = Math.round(g.averageNextMap).toLocaleString();
 
-            if (comparisonDataset) {
-                const compMatch = comparisonMap.get(g.name);
-                if (compMatch) {
-                    // Highlight row if map changed
-                    if (compMatch.mapNumber !== g.mapNumber) {
+            // If we have multiple JSONs, compare newest vs primary (JSON #1)
+            if (datasets.length > 1) {
+                const origMatch = primaryMap.get(g.name);
+                if (origMatch) {
+                    // Highlight row if map changed from original
+                    if (origMatch.mapNumber !== g.mapNumber) {
                         row.classList.add('map-changed');
-                        mapHtml += `<span class="sub-value" style="color: #d35400;">New: ${compMatch.mapName}</span>`;
+                        mapHtml += `<span class="sub-value" style="color: #d35400;">Prev: ${origMatch.mapName}</span>`;
                     }
 
-                    // Troop comparison (JSON #1 value on top, JSON #2 underneath)
-                    const troopDiff = compMatch.currentTroop - g.currentTroop; // Comparing new vs old
-                    if (compMatch.currentTroop > g.currentTroop) {
-                        troopHtml += `<span class="sub-value arrow-up">${compMatch.currentTroop.toLocaleString()} ▲</span>`;
-                    } else if (compMatch.currentTroop < g.currentTroop) {
-                        troopHtml += `<span class="sub-value arrow-down">${compMatch.currentTroop.toLocaleString()} ▼</span>`;
-                    } else {
-                        troopHtml += `<span class="sub-value" style="color: #7f8c8d;">${compMatch.currentTroop.toLocaleString()} =</span>`;
+                    // Members comparison (Newest vs Original)
+                    if (g.membersCount > origMatch.membersCount) {
+                        membersHtml += `<span class="sub-value arrow-up">${origMatch.membersCount.toLocaleString()} ▲</span>`;
+                    } else if (g.membersCount < origMatch.membersCount) {
+                        membersHtml += `<span class="sub-value arrow-down">${origMatch.membersCount.toLocaleString()} ▼</span>`;
+                    }
+
+                    // Troop comparison
+                    if (g.currentTroop > origMatch.currentTroop) {
+                        troopHtml += `<span class="sub-value arrow-up">${origMatch.currentTroop.toLocaleString()} ▲</span>`;
+                    } else if (g.currentTroop < origMatch.currentTroop) {
+                        troopHtml += `<span class="sub-value arrow-down">${origMatch.currentTroop.toLocaleString()} ▼</span>`;
                     }
 
                     // Average Next Map comparison
-                    const compAvgRounded = Math.round(compMatch.averageNextMap);
-                    const origAvgRounded = Math.round(g.averageNextMap);
-                    if (compAvgRounded > origAvgRounded) {
-                        avgHtml += `<span class="sub-value arrow-up">${compAvgRounded.toLocaleString()} ▲</span>`;
-                    } else if (compAvgRounded < origAvgRounded) {
-                        avgHtml += `<span class="sub-value arrow-down">${compAvgRounded.toLocaleString()} ▼</span>`;
-                    } else {
-                        avgHtml += `<span class="sub-value" style="color: #7f8c8d;">${compAvgRounded.toLocaleString()} =</span>`;
+                    const newestAvgRounded = Math.round(g.averageNextMap);
+                    const origAvgRounded = Math.round(origMatch.averageNextMap);
+                    if (newestAvgRounded > origAvgRounded) {
+                        avgHtml += `<span class="sub-value arrow-up">${origAvgRounded.toLocaleString()} ▲</span>`;
+                    } else if (newestAvgRounded < origAvgRounded) {
+                        avgHtml += `<span class="sub-value arrow-down">${origAvgRounded.toLocaleString()} ▼</span>`;
                     }
                 }
             }
@@ -292,7 +295,7 @@
             row.innerHTML = `
                 <td>${mapHtml}</td>
                 <td><strong>${g.name}</strong></td>
-                <td class="number-col">${g.membersCount.toLocaleString()}</td>
+                <td class="number-col">${membersHtml}</td>
                 <td class="number-col">${troopHtml}</td>
                 <td class="number-col">${avgHtml}</td>
             `;
