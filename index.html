@@ -256,6 +256,12 @@
         #mainContent {
             display: none;
         }
+        
+        #error-message {
+            color: #ff3333;
+            margin-top: 15px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -285,15 +291,12 @@
                 <button id="exportExcelBtn" style="display: none;">Export Multi-Sheet Excel</button>
             </div>
             <div>
-                <!-- Button to flip/link to map page -->
                 <button onclick="window.location.href='map2.html'">Go to Map Page</button>
             </div>
             <div>
-                <!-- Button to flip/link to outlands database page -->
                 <button onclick="window.location.href='outlandsdatabase.html'">Outlands Database</button>
             </div>
             <div>
-                <!-- Button to link to Ranking.html -->
                 <button onclick="window.location.href='Ranking.html'">Ranking</button>
             </div>
         </div>
@@ -341,6 +344,16 @@
 
         const formatNum = (num) => new Intl.NumberFormat('en-US').format(num || 0);
 
+        function displayError(message) {
+            const errDiv = document.getElementById('error-message');
+            errDiv.textContent = message;
+        }
+
+        function clearError() {
+            const errDiv = document.getElementById('error-message');
+            errDiv.textContent = '';
+        }
+
         // Relative time formatter function
         function formatRelativeTime(dateStr) {
             if (!dateStr || dateStr === 'Unknown') return 'Unknown';
@@ -380,23 +393,27 @@
                 }
             }
             
+            // Try standard parse first
             try {
                 const parsed = JSON.parse(text);
                 return Array.isArray(parsed) ? parsed : [parsed];
             } catch(e) {}
 
+            // Try wrapping multiple concatenated objects into a valid array
             try {
-                if (!text.startsWith('[') && text.includes('}{')) {
-                    text = '[' + text.replace(/}\s*{/g, '},{') + ']';
-                    const parsed = JSON.parse(text);
-                    return Array.isArray(parsed) ? parsed : [parsed];
+                let fixedText = text;
+                if (!fixedText.startsWith('[')) {
+                    fixedText = '[' + fixedText.replace(/}\s*{/g, '},{') + ']';
                 }
+                const parsed = JSON.parse(fixedText);
+                return Array.isArray(parsed) ? parsed : [parsed];
             } catch(e) {}
 
             throw new Error("Could not find valid JSON data. Please check what you pasted.");
         }
 
         document.getElementById('jsonFileInput').addEventListener('change', function(event) {
+            clearError();
             const files = event.target.files;
             if (files.length === 0) return;
             parsedGuilds = []; 
@@ -409,7 +426,7 @@
                         const parsedDataArray = extractAndParseJSON(e.target.result);
                         parsedDataArray.forEach(processJSONData);
                     } catch (err) {
-                        alert(`Error processing file "${file.name}":\n\n${err.message}`);
+                        displayError(`Error processing file "${file.name}": ${err.message}`);
                     }
                     filesRead++;
                     if (filesRead === files.length) renderDashboard();
@@ -419,15 +436,19 @@
         });
 
         document.getElementById('processPasteBtn').addEventListener('click', function() {
+            clearError();
             const rawText = document.getElementById('jsonPasteInput').value;
-            if (!rawText.trim()) return;
+            if (!rawText.trim()) {
+                displayError("Please paste some JSON text first.");
+                return;
+            }
             parsedGuilds = [];
             try {
                 const parsedDataArray = extractAndParseJSON(rawText);
                 parsedDataArray.forEach(processJSONData);
                 renderDashboard();
             } catch (err) {
-                alert(`Error processing pasted text:\n\n${err.message}`);
+                displayError(`Error processing pasted text: ${err.message}`);
             }
         });
 
@@ -484,11 +505,16 @@
                 } else {
                     parsedGuilds.push(guildObj);
                 }
+            } else {
+                console.warn("Skipped an entry: missing 'guild' or 'members' fields.");
             }
         }
 
         function renderDashboard() {
-            if (parsedGuilds.length === 0) return;
+            if (parsedGuilds.length === 0) {
+                displayError("Parsed JSON successfully, but no valid guild and member structures were found.");
+                return;
+            }
 
             document.getElementById('dashboard').style.display = 'block';
             document.getElementById('exportExcelBtn').style.display = 'block';
@@ -559,7 +585,6 @@
                 const dep = g.members.reduce((sum, m) => sum + m.deployed, 0);
                 const estRem = g.members.filter(m => m.deployed < 100000).reduce((sum, m) => sum + m.power, 0);
                 
-                // Snipers: Signed in within last 30 minutes AND deployed < 100,000 troops
                 const snipers = g.members.filter(m => {
                     if (m.deployed >= 100000) return false;
                     if (!m.lastVisit || m.lastVisit === 'Unknown') return false;
@@ -573,7 +598,9 @@
                 const prevPowers = g.guildInfo.prevSummaryPower || [];
                 const p1 = prevPowers[0] || 0;
                 const p2 = prevPowers[1] || 0;
-                const nextMap = Math.round((tPower + p1 + p2) * 0.30);
+                
+                // Calculation: Divided by 3
+                const nextMap = Math.round((tPower + p1 + p2) / 3);
 
                 return {
                     name: g.guildInfo.name,
@@ -764,7 +791,8 @@
                     const prevPowers = g.guildInfo.prevSummaryPower || [];
                     const p1 = prevPowers[0] || 0;
                     const p2 = prevPowers[1] || 0;
-                    const nextMap = Math.round((tPower + p1 + p2) * 0.30);
+                    
+                    const nextMap = Math.round((tPower + p1 + p2) / 3);
 
                     return {
                         "Guild Name": g.guildInfo.name,
