@@ -355,19 +355,25 @@ const endpoints = {
 };
 
 async function run() {
-    const dir = "./decoded_configs";
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+    const dir = path.join(__dirname, "decoded_configs");
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
-    for (const [name, url] of Object.entries(endpoints)) {
+    for (const [name, urlPath] of Object.entries(endpoints)) {
         try {
-            const targetUrl = `https://mighty-party.com${url}`;
-            const proxyUrl = `https://corsproxy.io/?` + encodeURIComponent(targetUrl);
-            
-            const res = await fetch(proxyUrl);
+            const targetUrl = `https://mighty-party.com${urlPath}`;
+            const res = await fetch(targetUrl, {
+                headers: {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                    "Referer": "https://mighty-party.com/",
+                    "Origin": "https://mighty-party.com"
+                }
+            });
+
             if (!res.ok) {
                 console.warn(`Skipped ${name}: HTTP ${res.status}`);
                 continue;
             }
+
             const buf = await res.arrayBuffer();
             const json = msgpack.decode(new Uint8Array(buf));
             fs.writeFileSync(path.join(dir, `${name}.json`), JSON.stringify(json, null, 2));
