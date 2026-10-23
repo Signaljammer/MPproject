@@ -15,7 +15,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install Msgpack
         run: npm install @msgpack/msgpack
@@ -27,37 +27,31 @@ jobs:
           const path = require("path");
           const msgpack = require("@msgpack/msgpack");
 
-          // Add your full endpoint dictionary here
           const endpoints = {
               "ABTestsServer": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/ABTestsServer",
-              "CheatersConstants": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/CheatersConstants"
-              // ... add remaining endpoints
-          };
-
-          async function run() {
-              const dir = "./decoded_configs";
-              if (!fs.existsSync(dir)) fs.mkdirSync(dir);
-
-              for (const [name, url] of Object.entries(endpoints)) {
-                  try {
-                      const res = await fetch(`https://mighty-party.com${url}`);
-                      if (!res.ok) continue;
-                      const buf = await res.arrayBuffer();
-                      const json = msgpack.decode(new Uint8Array(buf));
-                      fs.writeFileSync(path.join(dir, `${name}.json`), JSON.stringify(json, null, 2));
-                      console.log(`Saved: ${name}.json`);
-                  } catch (e) {
-                      console.error(`Error on ${name}:`, e.message);
-                  }
-              }
-          }
-          run();
-          '
-
-      - name: Commit and Push
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add decoded_configs/
-          git commit -m "Auto-update game config JSONs" || exit 0
-          git push
+              "AI_Characters": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/AI_Characters",
+              "Actions": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/Actions",
+              "Actions_Event": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/Actions_Event",
+              "AppsFlyerGroups": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/AppsFlyerGroups",
+              "ArchersLevels": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/ArchersLevels",
+              "ArchersUnits": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/ArchersUnits",
+              "Assistants": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/Assistants",
+              "BalanceConstants": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/BalanceConstants/BalanceConstants_PATCH_Creative_roadmap_lock",
+              "BalanceZone": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/BalanceZone",
+              "BankItems": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/BankItems",
+              "BankShop": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/BankShop",
+              "Battlepass": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/Battlepass",
+              "BattlepassSteps": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/BattlepassSteps",
+              "BehindLineCoeffs": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/BehindLineCoeffs",
+              "BlacklistNicknames": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/BlacklistNicknames",
+              "BonusLevels": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/BonusLevels",
+              "Boosters": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/Boosters",
+              "BundleGroups": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/BundleGroups",
+              "BundleGroups_Event": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/BundleGroups_Event",
+              "Bundles": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/Bundles/Bundles_PATCH_No_free_bundles_new_players",
+              "BundlesForRestore": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/BundlesForRestore",
+              "Bundles_Event": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/Bundles_Event",
+              "CanChangeDataRequests": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/CanChangeDataRequests",
+              "CardMiniEventRewards": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/CardMiniEventRewards",
+              "CardMiniEventTiers": "/cc_api/configs_msgpack/f53437e7302104601d6b8bf1c58f6bef/CardMiniEventTiers",
+              "CardRoulette": "/cc_api/configs_msgpack/f534
