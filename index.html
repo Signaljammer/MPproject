@@ -291,13 +291,13 @@
                 <button id="exportExcelBtn" style="display: none;">Export Multi-Sheet Excel</button>
             </div>
             <div>
-                <button onclick="window.location.href='map2.html'">Go to Map Page</button>
+                <button onclick="window.location.href='map2.html'">Map Page</button>
             </div>
             <div>
                 <button onclick="window.location.href='outlandsdatabase.html'">Outlands Database</button>
             </div>
             <div>
-                <button onclick="window.location.href='Ranking.html'">Ranking</button>
+                <button onclick="window.location.href='Ranking.html'">Rankings</button>
             </div>
         </div>
         
@@ -393,13 +393,11 @@
                 }
             }
             
-            // Try standard parse first
             try {
                 const parsed = JSON.parse(text);
                 return Array.isArray(parsed) ? parsed : [parsed];
             } catch(e) {}
 
-            // Try wrapping multiple concatenated objects into a valid array
             try {
                 let fixedText = text;
                 if (!fixedText.startsWith('[')) {
@@ -599,7 +597,6 @@
                 const p1 = prevPowers[0] || 0;
                 const p2 = prevPowers[1] || 0;
                 
-                // Calculation: Divided by 3
                 const nextMap = Math.round((tPower + p1 + p2) / 3);
 
                 return {
@@ -676,7 +673,11 @@
             const estRemainingPower = g.members.filter(m => m.deployed < 100000).reduce((sum, m) => sum + m.power, 0);
             const totalElixir = g.members.reduce((sum, m) => sum + m.elixirSpent, 0);
             const lockedPower = g.members.filter(m => m.isLocked).reduce((sum, m) => sum + m.power, 0);
-            const avgNextMap = totalMembers > 0 ? Math.round((deployedPower + estRemainingPower) / totalMembers) : 0;
+            
+            const prevPowers = g.guildInfo.prevSummaryPower || [];
+            const p1 = prevPowers[0] || 0;
+            const p2 = prevPowers[1] || 0;
+            const nextMapVal = Math.round((totalPower + p1 + p2) / 3);
 
             document.getElementById('summaryCards').innerHTML = `
                 <div class="card"><div class="card-title">Total Members</div><div class="card-value">${totalMembers}</div></div>
@@ -685,7 +686,7 @@
                 <div class="card"><div class="card-title">Est. Remaining Power</div><div class="card-value">${formatNum(estRemainingPower)}</div></div>
                 <div class="card"><div class="card-title">Total Elixir Spent</div><div class="card-value">${formatNum(totalElixir)}</div></div>
                 <div class="card"><div class="card-title">Locked Power</div><div class="card-value">${formatNum(lockedPower)}</div></div>
-                <div class="card"><div class="card-title">Average Next Map</div><div class="card-value">${formatNum(avgNextMap)}</div></div>
+                <div class="card"><div class="card-title">Next Week Map</div><div class="card-value">${formatNum(nextMapVal)}</div></div>
             `;
 
             document.getElementById('tableTitle').innerText = 'Guild Members';
